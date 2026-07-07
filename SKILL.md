@@ -1,19 +1,25 @@
 ---
 name: systematic-review-coordinator
-version: 4.1
+metadata:
+  version: "5.0"
 description: >
   Orchestrates a rigorous, auditable, and PRISMA-compliant systematic
-  literature review workflow with full human oversight and independent
-  dual screening. Automates search construction, retrieval, deduplication,
-  and screening while enforcing 100% human audit of all inclusion/exclusion
-  decisions and risk of bias assessments. Includes AI transparency reporting
-  and generates a researcher-editable PRISMA flow diagram. Designed to be
-  used by researchers with no prior coding experience. Activates when a
-  user requests a systematic review or literature search based on a
-  research question.
+  literature review workflow — for NEW reviews and for UPDATES of
+  existing reviews — with full human oversight and independent dual
+  screening. Automates search construction, retrieval, deduplication
+  (including dedup against a prior review corpus), and screening at
+  scale (stable record IDs, batching, checkpoint/resume), with a
+  mandatory pilot→calibrate→scale validation protocol before any full
+  screen, while enforcing 100% human audit of all inclusion/exclusion
+  decisions and risk of bias assessments. Includes AI transparency
+  reporting and generates a researcher-editable PRISMA flow diagram
+  (new-review and update layouts). Designed to be used by researchers
+  with no prior coding experience. Activates when a user requests a
+  systematic review, a review update, or a literature search based on
+  a research question.
 ---
 
-# Systematic Review Coordinator — Optimised Skill (v4.1)
+# Systematic Review Coordinator — Optimised Skill (v5.0)
 
 ---
 
@@ -30,6 +36,8 @@ This skill is designed to align with the following verified standards and guidel
 
 **Note on AI-SR benchmarking literature:** Published studies on LLM performance in systematic review tasks (e.g., Khraisha et al. 2024 on GPT-4 screening; Wang et al. 2023 on Boolean query generation) inform the design of this skill's performance monitoring. However, specific performance claims are not made — actual performance depends on the review topic, model version, and prompt. The ground-truth validation system (Phase 5) measures performance empirically for each review rather than relying on literature estimates.
 
+**Note on v5 operational additions:** The capabilities added in v5 — Update-Review Mode, Screening at Scale (stable IDs, batching, checkpoint/resume), the Pilot → Calibrate → Scale validation protocol, the eligibility-rules registry, κ interpretation guidance (including % agreement and PABAK), risk-based audit, environment fallbacks, and the PRISMA update layout — are **internal design guidance** derived from direct operational experience running this skill on a live PROSPERO-track review update. They introduce **no new external citations**. Where they touch reporting or methodology, they are grounded in the standards already listed above: PRISMA 2020 (flow-diagram bookkeeping, including for updated reviews), PRISMA-S (search reporting, including date limits and re-run searches), the Cochrane Handbook v6.5 (independent duplicate screening, pilot testing of eligibility criteria and screening forms), and PRISMA-trAIce/RAISE (AI transparency). PABAK (prevalence-adjusted bias-adjusted kappa) is used here as a well-established descriptive agreement statistic; it is computed and reported, not cited as a new standard.
+
 ---
 
 ## Boundaries and Guardrails
@@ -38,10 +46,14 @@ This skill is designed to align with the following verified standards and guidel
 - **DO NOT** use zero-shot prompting for abstract screening. All screening must use structured criterion-by-criterion evaluation with explicit evidence grounding.
 - **DO NOT** use the AI model to probabilistically deduplicate records. Deduplication must be deterministic.
 - **DO NOT** finalise any inclusion or exclusion decision without explicit human confirmation. The AI produces recommendations; the human decides.
-- **DO NOT** use creative or probabilistic inference. All LLM calls must use `temperature=0` to ensure deterministic, reproducible outputs that rigorously adhere to the provided research question and criteria.
+- **DO NOT** use creative or probabilistic inference. All LLM calls must use `temperature=0` to minimise output variability and enforce strict adherence to the provided research question and criteria. (See the **Reproducibility Statement** for what `temperature=0` does and does not guarantee for agentic screening — do not describe outputs as "identical" or "exactly replicable" at the reasoning level.)
 - **DO NOT** proceed past any human-approval gate without logged confirmation.
+- **DO NOT** begin the full title-abstract screen before the calibration-pilot gate (Gate 2a) has been passed and the eligibility criteria locked.
+- **DO NOT** substitute free/public APIs (PubMed E-utilities, Europe PMC, OpenAlex, etc.) for the institutional databases named in the protocol (e.g., Ovid MEDLINE/Embase, EBSCO CINAHL/PsycINFO, Scopus, ProQuest, Web of Science). Substitution silently changes the evidence base. It is permitted only as an explicitly approved, logged protocol deviation.
+- **DO NOT** use a deterministic keyword classifier, embedding filter, or any other non-reading triage mechanism as the authoritative screen. Such tools may only be used as clearly labelled high-recall triage/stratification aids; authoritative screening recommendations come from genuine per-record reading.
 - **DO NOT** conduct risk of bias assessment without the researcher providing their chosen framework.
 - **DO NOT** execute any Python script without first providing the researcher with clear, step-by-step setup and run instructions suitable for someone with no coding experience.
+- **DO NOT** instruct the researcher to modify their operating-system or browser trust store, or any shared certificate bundle, without first explaining what the change does and obtaining their explicit consent. Prefer non-invasive, script-scoped alternatives (see Phase 3).
 - **DO NOT** cite, reference, or rely on any guideline, framework, or publication that has not been independently verified as real and currently accessible.
 
 ---
@@ -54,11 +66,26 @@ This block must be included in the audit log and in any publication or report ar
 AI_TRANSPARENCY:
   model_id: {exact model identifier}
   model_version: {full version string}
+  model_ids_per_batch: {list — model id + version actually used for each
+    screening batch; long screens span sessions and the model can change
+    between sessions, so this must be recorded per batch, not assumed
+    constant}
   model_provider: {provider name, e.g., Anthropic}
   inference_api_version: {API version used}
-  prompt_version: {skill version, e.g., v4.1}
+  prompt_version: {skill version, e.g., v5.0}
   temperature: 0
-  seed: {researcher-set seed}
+  seed: {researcher-set seed — logged for traceability; see
+    reproducibility_basis below}
+
+  reproducibility_basis:
+    - Versioned, hashed screening prompts and eligibility criteria
+      (every prompt change produces a new prompt_version_hash)
+    - Fully logged per-record inputs, outputs, and structured rationales
+    - The complete human-decision audit trail (hash-chained)
+    - NOTE: For agentic (multi-step, tool-using) screening, a seed does
+      not guarantee token-identical reasoning across runs. Reproducibility
+      is achieved through the versioning and logging above, not through
+      seed-level determinism of the model's reasoning.
 
   role_of_ai:
     - Screening recommendation only (all decisions confirmed by human)
@@ -70,12 +97,12 @@ AI_TRANSPARENCY:
   known_limitations:
     - AI may produce reasoning that appears plausible but misinterprets study content
     - AI may systematically under- or over-include certain study types depending on training data
-    - Outputs are deterministic for a given model+seed+prompt, but may differ across model versions or providers
+    - temperature=0 minimises but does not eliminate output variability for agentic screening; outputs may also differ across model versions, providers, or sessions of a long screen (hence per-batch model logging)
     - Performance metrics are internal to this review and not externally benchmarked
     - AI-assisted screening does not replace independent human review; it augments it
 
   disclosure:
-    - This review used AI-assisted screening with 100% human audit and independent dual screening
+    - This review used AI-assisted screening with human audit (100% by default; if the documented risk-based audit variant was used, state it here as a limitation) and independent dual screening
     - AI involvement is reported in accordance with PRISMA-trAIce (experimental) and RAISE (2025) guidance
 ```
 
@@ -90,12 +117,19 @@ Before any work begins, the following parameters must be set and logged. Present
   "config": {
     "model_id": "string — exact model identifier (e.g., claude-sonnet-4-20250514)",
     "model_version": "string — full version string",
+    "model_ids_per_batch": "object — batch number → model id + version actually used (appended as batches run; see Reproducibility Statement)",
     "model_provider": "string — e.g., Anthropic",
     "inference_api_version": "string — API version",
     "temperature": 0,
-    "seed": "integer — SET BY THE RESEARCHER (see below)",
-    "prompt_version": "v4.1",
+    "seed": "integer — SET BY THE RESEARCHER (logged for traceability; see below)",
+    "prompt_version": "v5.0",
     "max_tokens_screening": "integer — max output tokens for screening calls",
+    "review_mode": "\"new\" | \"update\" — SET IN PHASE 0 (see Mode Selector)",
+    "prior_corpus_paths": "array of strings — update mode only: paths to the prior review's screened corpus exports (RIS/BibTeX/CSV; EndNote libraries must be exported to RIS first)",
+    "last_search_dates": "object — update mode only: per-database last-search date, e.g., {\"MEDLINE (Ovid)\": \"2023-05-14\", ...} — CONFIRMED, not assumed (see Phase 0)",
+    "screening_batch_size": "integer — default 250 (full-screen execution batches; see Screening at Scale)",
+    "audit_batch_size": "integer — default 25 (human audit presentation batches)",
+    "audit_mode": "\"full_100_percent\" (default) | \"risk_based\" (opt-in, documented as limitation; see Gate 2)",
     "review_title": "string",
     "principal_investigator": "string",
     "date_initiated": "ISO-8601",
@@ -105,46 +139,80 @@ Before any work begins, the following parameters must be set and logged. Present
 }
 ```
 
-**Seed:** Ask the researcher to provide an integer seed value for reproducibility. Explain: "This seed ensures your screening results are reproducible. Any reviewer using the same model, prompt version, and seed will get identical AI outputs. Please provide an integer (e.g., 42, 12345), or I can generate one for your approval." Log the seed immutably once confirmed.
+**Seed:** Ask the researcher to provide an integer seed value. Explain honestly: "This seed is logged for traceability and is passed to any component that supports it (e.g., random sampling for pilots and ground-truth selection, where it *does* guarantee reproducible sampling). For the AI's per-record screening reasoning, the seed does **not** guarantee identical outputs — see the Reproducibility Statement below. Please provide an integer (e.g., 42, 12345), or I can generate one for your approval." Log the seed immutably once confirmed. **Do not describe the seed as ensuring "identical AI outputs" for screening.**
 
-**Temperature=0:** Ensures deterministic outputs with zero creative latitude, strict adherence to criteria.
+**Temperature=0:** Minimises output variability and creative latitude, enforcing strict adherence to criteria. It does not, on its own, make agentic screening exactly replicable.
 
 **Directories:** Ask the researcher where they would like files saved. Provide sensible defaults (e.g., `~/systematic_review/`) but allow the researcher to specify any path. This applies to all working files and especially to full-text PDFs (Phase 6).
+
+### Reproducibility Statement (read before making any reproducibility claim)
+
+What this skill **can** honestly promise, and how:
+
+1. **Prompt/criteria versioning.** Every screening prompt and every version of the eligibility criteria (including the eligibility-rules registry, Phase 5) is hashed. Every screening decision records the `prompt_version_hash` it was made under. Any decision can be traced to the exact instructions in force at the time.
+2. **Complete decision logging.** For every record: the input metadata (hashed), the AI's structured rationale with evidence quotes, the recommendation, the confidence level, and the human's audit decision are logged with timestamps in the hash-chained audit log.
+3. **Deterministic sampling.** Pilot samples, ground-truth samples, and batch ordering are drawn by deterministic procedures (stable-ID order or seeded sampling), so *which records were looked at, in what order* is exactly reproducible.
+4. **Per-batch model identity.** The model id + version actually used is logged for every batch. Long screens span multiple sessions; the model can change between sessions, and this must be captured rather than assumed constant.
+
+What this skill must **not** claim:
+
+- That `temperature=0` + seed yields token-identical or decision-identical AI reasoning for interactive/agentic screening. The execution harness does not expose seed-level control over per-record reasoning the way a single raw API call might, and even then determinism is not guaranteed across infrastructure. A logged seed for the screening step is traceability, not determinism.
+- That a re-run of the screen would produce "identical results." The defensible claim is: *every decision is fully documented, criterion-referenced, evidence-quoted, human-audited, and traceable to a hashed prompt version and a logged model version* — which is what reviewers and reproducers actually need.
+
+All language elsewhere in this skill, in the AI Transparency Block, and in any generated report must be consistent with this statement.
 
 ---
 
 ## Structural Overview
 
-This skill operates in **11 sequential phases** with **6 mandatory human-approval gates**. No phase may begin until the preceding phase is complete and, where applicable, human approval is logged.
+This skill operates in **sequential phases** with **7 mandatory human-approval gates**. No phase may begin until the preceding phase is complete and, where applicable, human approval is logged. Phase 0 begins with a **Mode Selector** (NEW review vs UPDATE of an existing review); update-mode-only steps are marked ◆ below and are skipped for new reviews.
 
 ```
-Phase 0:  Protocol Generation & Registration
+Phase 0:  Mode Selector (NEW | UPDATE), Kickoff Decision Checklist,
+          Protocol Generation & Registration
+          ◆ UPDATE: prior protocol/PROSPERO reuse, last-search dates,
+            prior-corpus location, amendment logging
           ↓
 Phase 1:  Initialisation, Configuration & Audit Logging
           ↓
 Phase 2:  PICO Extraction, Study Design & Language Restrictions,
           Query Generation & Database Planning
+          ◆ UPDATE: reuse prior strings verbatim + per-database
+            date restriction (see Date-Limiting Reference)
           ↓ ── GATE 1: Human approves search strategy & database plan ──
-Phase 3:  Database Retrieval (with institutional SSO guidance)
+Phase 3:  Database Retrieval (with institutional SSO guidance;
+          NO free-API substitution for institutional databases)
           ↓
-Phase 4:  Deterministic Deduplication (HITL for suspected duplicates)
+Phase 4:  Stable Record IDs + Deterministic Deduplication
+          (HITL for suspected duplicates)
+          ◆ Phase 4b (UPDATE): Dedup vs prior corpus + carry-forward
+            of prior decisions
           ↓
-Phase 5:  Title-Abstract Screening (AI-assisted) + Performance Monitoring
-          ↓ ── GATE 2: 100% human audit + 20% ground-truth validation ──
+Phase 5a: Screening Calibration Pilots (pilot → 100% audit → κ gate →
+          calibrate → re-pilot; eligibility-rules registry built here)
+          ↓ ── GATE 2a: Criteria locked (κ ≥ 0.60 on a fresh pilot,
+               convergence demonstrated) ──
+Phase 5:  Title-Abstract Screening at Scale (batching, checkpoint/
+          resume, throughput planning) + Performance Monitoring
+          ↓ ── GATE 2: 100% human audit (default) or documented
+               risk-based audit + 20% ground-truth validation ──
 Phase 5b: Independent Dual Screening & Conflict Resolution
-          ↓ ── GATE 2b: Resolve all conflicts; compute Cohen's Kappa ──
+          ↓ ── GATE 2b: Resolve all conflicts; compute Cohen's Kappa
+               (+ % agreement + PABAK) ──
 Phase 6:  Full-Text Retrieval (researcher-set directory)
           ↓
 Phase 7:  Full-Text Screening + Performance Monitoring + Dual Screening
           ↓ ── GATE 3: 100% human audit + conflict resolution ──
 Phase 8:  Risk of Bias Assessment (researcher-provided framework)
           ↓ ── GATE 4: 100% human audit of all RoB judgments ──
-Phase 9:  PRISMA Flow Diagram Generation
+Phase 9:  PRISMA Flow Diagram Generation (new-review or update layout)
           ↓ ── GATE 5: Researcher finalises diagram ──
 Phase 10: Export & Reporting (including AI Transparency Statement)
 ```
 
-**Failure recovery:** If the process is interrupted at any phase, it can be resumed from the last completed phase by validating the audit log's hash chain integrity. Log the resumption event, including the phase resumed from and the chain verification result.
+**Phase 5a runs before the full Phase 5 screen.** It is numbered 5a because it *is* screening — pilot rounds of it — but it is a hard prerequisite: the full screen must not begin until Gate 2a is passed.
+
+**Failure recovery:** If the process is interrupted at any phase, it can be resumed from the last completed phase by validating the audit log's hash chain integrity. Log the resumption event, including the phase resumed from and the chain verification result. **Within Phase 5 and Phase 7, recovery is finer-grained:** screening decisions are checkpointed to disk per batch (and per sub-chunk where possible — see Screening at Scale), so an interrupted screen resumes from the last persisted record, not the start of the phase. Log a `SCREENING_RESUMPTION` event with the batch number, last completed record ID, and chain verification result.
 
 ---
 
@@ -158,21 +226,32 @@ Immediately create `audit_log.json` using the schema below. Every action, decisi
 
 ```json
 {
-  "schema_version": "4.1",
+  "schema_version": "5.0",
   "review_metadata": {
     "review_title": "",
     "protocol_id": "",
     "prospero_id": "",
+    "review_mode": "new | update",
+    "prior_review": {
+      "comment": "update mode only — null for new reviews",
+      "prior_protocol_id_or_prospero_id": "",
+      "prior_corpus_paths": [],
+      "prior_corpus_record_count": null,
+      "last_search_dates": {},
+      "last_search_dates_confirmed_by": "researcher | librarian | assumed (flagged as limitation)",
+      "protocol_amendments": []
+    },
     "date_initiated": "ISO-8601",
     "principal_investigator": "",
     "config": {
       "model_id": "",
       "model_version": "",
+      "model_ids_per_batch": {},
       "model_provider": "",
       "inference_api_version": "",
       "temperature": 0,
       "seed": null,
-      "prompt_version": "v4.1"
+      "prompt_version": "v5.0"
     },
     "ai_transparency": {}
   },
@@ -192,9 +271,12 @@ Every log entry must conform to:
 {
   "entry_id": "UUID-v4",
   "created_at": "ISO-8601 — date and time this entry was created",
-  "phase": "0–10",
+  "phase": "0–10 (including 4b, 5a, 5b)",
   "action": "descriptive string",
   "actor": "AI | HUMAN | SYSTEM",
+  "record_id": "string | null — the STABLE record ID (see Phase 4) for any entry concerning a specific record; null for phase-level entries",
+  "batch_number": "integer | null — screening batch this entry belongs to, if applicable",
+  "model_id_used": "string | null — model id + version that produced this output, for AI entries (long screens span sessions; do not assume it matches config.model_id)",
   "input_hash": "SHA-256 of input data",
   "output_hash": "SHA-256 of output data (for LLM calls, hash the raw response)",
   "output": {},
@@ -221,6 +303,12 @@ Every log entry must conform to:
 - `output_hash` added: SHA-256 of every LLM response for reproducibility verification.
 - `structured_rationale` replaces free-form `reasoning`: forces a machine-parseable rationale schema instead of raw CoT text, improving transparency and auditability per PRISMA-trAIce guidance.
 
+**Key changes in v5.0:**
+- `review_mode` and `prior_review` metadata (Update-Review Mode).
+- `record_id` on every record-level entry uses the **stable record ID** from Phase 4 (hash of normalised DOI, or normalised title if no DOI) — never a positional index.
+- `batch_number` and `model_id_used` on screening entries: every batch logs the model id + version actually in use.
+- The audit log is complemented by per-batch **checkpoint files** on disk (see Screening at Scale) so screening progress survives interruption; the audit log remains the single source of truth for *decisions*, while checkpoint files are the operational resume mechanism.
+
 **Every entry records the date and time of creation.** The `created_at` field uses full ISO-8601 format including timezone (e.g., `2026-04-13T14:32:07+01:00`). Human review actions additionally record `reviewed_at`. This applies to all entries across all phases.
 
 ### Chain Integrity
@@ -229,11 +317,46 @@ Each entry's `previous_entry_hash` contains the SHA-256 hash of the entire prece
 
 ---
 
-## Phase 0: Protocol Generation & Registration
+## Phase 0: Mode Selection, Kickoff Checklist, Protocol Generation & Registration
 
-### Instructions
+### Step 0.1: Mode Selector (MANDATORY FIRST QUESTION)
 
-1. Ask the researcher for their research question.
+Before anything else, ask:
+
+> "Is this a **NEW** systematic review, or an **UPDATE** of an existing review (e.g., re-running the searches of a published or PROSPERO-registered review to capture studies published since the last search)?"
+
+Log the answer as `review_mode` in the configuration and audit log. Updates are a large share of real-world review work and follow a materially different path; do not force them through the fresh-review workflow.
+
+**If UPDATE, elicit and log all of the following before proceeding:**
+
+1. **Prior protocol identity.** The prior protocol / PROSPERO ID. If the researcher cannot produce a registration ID, record "assumed registered" or "not registered" with justification — this is a reportable limitation, not a blocker.
+2. **Prior protocol reuse.** Confirm that the prior protocol's eligibility criteria, RoB tools, and database set are being **reused**. Any change is a **protocol amendment**: log each amendment as a deviation with explicit justification and researcher approval (reuse the existing deviation-logging mechanism from Step 7 below). Amendments to eligibility criteria apply **at screening only — they must not alter search breadth** (see Phase 2 update rules).
+3. **Last-search date, per database.** Ask for the last-search date **for each database separately** — they often differ. Then apply this rule: **confirm, don't assume.** Dates recorded in prior papers or spreadsheets are frequently data-entry dates, export dates, or manuscript dates rather than true search cutoffs. Ask the researcher to verify each date against the prior review's PRISMA-S search documentation (or with their librarian). Log each date with `last_search_dates_confirmed_by` (researcher / librarian / assumed — the last flagged as a limitation).
+4. **Prior screened corpus location.** Where are the prior review's records and decisions? Accept: an EndNote library (`.enl` — must be exported to RIS before processing), RIS/BibTeX exports, or a CSV/spreadsheet of records with decisions. Confirm **what the corpus contains** — in particular, whether it already includes any previous update rounds (so the dedup baseline is complete). Log paths as `prior_corpus_paths` and the record count.
+5. **Source-to-role mapping.** If the researcher supplies spreadsheets/documents from the prior review, explicitly confirm which file/tab plays which role: research question, search strings per database, screening protocol/eligibility criteria, prior decisions. Do not guess; log the confirmed mapping.
+6. **Carry-forward rule.** Records in the new retrieval that are already present in the prior corpus are removed before screening (Phase 4b), and any record already adjudicated in the prior review **carries its prior decision forward** — it is not re-screened unless the researcher explicitly requests re-screening (log that request as an amendment).
+
+### Step 0.2: Kickoff Decision Checklist (both modes)
+
+The following decisions are elicited **deliberately at kickoff**, not discovered mid-flight. Present them as a checklist, record every answer (including "decide later at Phase X", which must name the phase), and log all responses:
+
+1. **New vs update** (Step 0.1) and, for updates, prior protocol/registration reuse.
+2. **Source-to-role mapping** for any provided documents (Step 0.1.5).
+3. **Baseline corpus** for update dedup, and confirmation of its completeness (Step 0.1.4).
+4. **True last-search dates per database**, confirmed (Step 0.1.3), and the correct per-database "date added" field to limit on (see the Date-Limiting Reference in Phase 2 — these differ by platform and drift across versions).
+5. **API substitution policy.** State the default plainly: *free/public APIs are NOT substituted for the protocol's institutional databases* (see Boundaries and Phase 3). Confirm the researcher understands searches of Ovid/EBSCO/Scopus/ProQuest/Web of Science will be run through the institutional interfaces with manual export.
+6. **Export completeness requirements.** Exports must include abstracts (screening is crippled without them — re-export if missing) and hit-count vs export-count discrepancies will be recorded (see Phase 3).
+7. **PICO amendment rule** (updates): amendments apply at screening only and do not alter search breadth.
+8. *(Deferred by design)* **Nuanced eligibility rules** beyond raw PICO — informant vs subject, condition boundaries, traits vs diagnosis, proxy outcomes, publication-type handling — are expected to surface during the calibration pilots and are captured in the **eligibility-rules registry** (Phase 5a). Tell the researcher this will happen so it is anticipated, not alarming.
+9. **Reviewer B identity** for independent dual screening: a second human reviewer (preferred, Cochrane-compliant) or a second blinded AI pass (documented as a limitation). Decide now so Phase 5b is not blocked.
+10. **Audit depth** at large N: 100% human audit (default, gold standard) or risk-based audit (opt-in, documented as limitation — see Gate 2). Give the researcher the upfront throughput estimate context from Screening at Scale before they choose.
+11. **Full-screen pacing:** stage-and-audit per batch (screen a batch → human audits it → next batch) vs one consolidated pass (screen everything → single audit). Set expectations that a genuine per-record screen of thousands of records **spans multiple sessions** (see Throughput Honesty, Phase 5).
+
+Log the completed checklist as a single audit entry with `created_at`.
+
+### Step 0.3: Protocol Generation & Registration
+
+1. Ask the researcher for their research question (for updates: confirm the prior question, noting any amendment).
 2. Ask whether they wish to include grey literature.
 3. Ask the researcher to provide or confirm:
    - The seed value for reproducibility.
@@ -258,8 +381,12 @@ Each entry's `previous_entry_hash` contains the SHA-256 hash of the entire prece
 6. Prompt the researcher to register on PROSPERO (https://www.crd.york.ac.uk/prospero/) or equivalent and record the registration ID in the audit log.
 7. Lock the protocol. Any subsequent deviation must be logged with explicit justification and researcher approval.
 
+**Update mode:** Instead of drafting a fresh protocol, generate a **protocol amendment document** that (a) references the prior protocol/PROSPERO record, (b) restates the reused eligibility criteria verbatim, (c) lists every amendment with justification, (d) records the confirmed per-database last-search dates and the update search window, and (e) states the carry-forward rule for previously adjudicated records. Present it for approval and lock it exactly as for a new protocol. Prompt the researcher to update their PROSPERO record where applicable.
+
 ### Logged Outputs
-- Protocol document (full text, hashed).
+- `review_mode` and (update mode) the full prior-review block: prior protocol ID, confirmed last-search dates per database, prior corpus paths and record count, amendments.
+- Completed Kickoff Decision Checklist.
+- Protocol document or protocol amendment document (full text, hashed).
 - PROSPERO registration ID (or "not registered" with justification).
 - Researcher approval timestamp (`created_at`).
 
@@ -272,8 +399,10 @@ Each entry's `previous_entry_hash` contains the SHA-256 hash of the entire prece
 1. Create `audit_log.json` with the schema above.
 2. Present the configuration block to the researcher. Require them to:
    - Confirm or set the model identifier, model provider, and inference API version.
-   - **Set the seed value.**
+   - **Set the seed value** (logged for traceability — use the honest explanation from the Configuration Block, not "identical outputs" language).
    - Confirm temperature=0.
+   - Confirm `review_mode` and, for updates, `prior_corpus_paths` and `last_search_dates` (from Phase 0).
+   - Confirm `screening_batch_size` (default 250), `audit_batch_size` (default 25), and `audit_mode` (default full 100%).
    - **Set the working directory** for all review files.
    - **Set the full-text PDF directory** (default: `{working_directory}/full_texts/`).
 3. Populate the AI Transparency Block and log it as the first audit entry (with `created_at` timestamp).
@@ -284,11 +413,15 @@ Each entry's `previous_entry_hash` contains the SHA-256 hash of the entire prece
 ├── audit_log.json
 ├── protocol.md
 ├── ai_transparency_statement.md
+├── eligibility_rules_registry.json   ← built during Phase 5a, locked at Gate 2a
 ├── searches/
 ├── records/
+│   └── prior_corpus/    ← update mode: prior review's exported corpus
 ├── full_texts/          ← or researcher's custom path
 ├── screening/
+│   ├── pilots/          ← Phase 5a: per-pilot samples, audits, κ reports
 │   ├── title_abstract/
+│   │   └── batches/     ← per-batch raw metadata, decisions, worksheets, checkpoints
 │   ├── full_text/
 │   └── dual_screening/
 ├── risk_of_bias/
@@ -359,6 +492,10 @@ Explicitly cue the researcher to specify each of the following. If the researche
 Log all responses with `created_at` timestamp. Record explicit "N/A" responses — these are protocol decisions and must be documented.
 
 ### Step 2.3: Search String Generation & Cross-Validation
+
+**Update mode — reuse, don't regenerate.** For an update review, the prior review's per-database search strings are **reused verbatim**, with exactly one modification: a date restriction limiting results to records added since the confirmed last-search date for that database (see Step 2.3c). Do not "improve" the strings — changed strings change the evidence base and break comparability with the prior review. Any protocol amendment to eligibility (Phase 0) applies **at screening only and must not alter search breadth**. If a prior string is genuinely broken (e.g., a field tag the platform no longer supports), fix the minimum necessary, log it as a deviation, and flag it in the PRISMA-S search documentation. Cross-validation (below) still runs on the reused strings to catch platform drift.
+
+For new reviews:
 
 1. Translate the PICO JSON into distinct Boolean search strings using exact field tags for each target database:
    - PubMed: `[tiab]`, `[MeSH Terms]`, `[pt]` for publication types
@@ -554,6 +691,28 @@ search=("cognitive behavioral therapy" OR "cognitive behaviour therapy" OR "CBT"
 
 **All translated API queries must be included in the Gate 1 review for researcher approval.**
 
+**Scope warning — the automatable set rarely matches real reviews.** The APIs above (PubMed E-utilities, Europe PMC, ClinicalTrials.gov, OpenAlex, plus Scopus where the institution has an API key) cover only part of a typical protocol. Real reviews are predominantly run through **institutional platforms** — Ovid (MEDLINE, Embase, PsycINFO), EBSCO (CINAHL, PsycINFO), Scopus, ProQuest, Web of Science — with manual export. **Do not substitute a free API for an institutional database named in the protocol** (e.g., do not run PubMed E-utilities "instead of" Ovid MEDLINE, or OpenAlex "instead of" Scopus). The indexing, controlled vocabulary handling, and date fields differ; substitution silently changes the evidence base. If the researcher genuinely wants a substitution, it is a protocol deviation: explain the consequence, obtain explicit approval, and log it.
+
+### Step 2.3c: Date-Limiting Syntax Reference (update searches)
+
+An update search must be limited by **when the record entered the database** ("date added" / "entry date"), not by publication date — publication dates lag indexing and using them either misses late-indexed studies or re-retrieves thousands of already-screened records. The correct field differs per platform:
+
+| Platform | Field / mechanism | Example (records added since 14 May 2023) |
+|---|---|---|
+| Ovid (MEDLINE, Embase, PsycINFO) | Entry/update date fields via the `limit` command — commonly `dt=` (date created), `up=` (update/revision date), `dd=` (date delivered); availability and meaning vary by segment | e.g., `limit N to dd=20230514-20260707` |
+| EBSCO (CINAHL, PsycINFO) | `EM` (Entry Month/date) field | `EM 202305-` appended with `AND` |
+| Scopus | `ORIG-LOAD-DATE` | `AND ORIG-LOAD-DATE AFT 20230514` |
+| ProQuest | `PDN` (or platform date-added limiter in the interface) | `AND PDN(>20230514)` |
+| Cochrane Library | Interface limiter: "Date added to database" / custom range in Search Limits | set in the Limits panel; record the exact limiter used |
+| Web of Science | Interface Timespan / "Index Date" limiter | set in the interface; record the exact limiter used |
+| PubMed (E-utilities / interface) | `[edat]` (Entrez date) or `[crdt]` (create date) rather than `[dp]` | `AND 2023/05/14:3000[edat]` |
+
+**MANDATORY caveats, presented to the researcher verbatim in substance:**
+
+1. **"Verify live with your librarian."** Date-field syntax **drifts across platform versions and licensing segments**. The table above is a starting point, not an authority. Before Gate 1, the researcher (ideally with their institution's librarian) must verify each date limiter live in the actual interface, and the verified syntax is what gets logged and reported per PRISMA-S.
+2. **Entry-date vs publication-date trade-off.** Limiting on entry date is standard for updates but can miss records whose entry date predates the last search while the search itself missed them. If the prior review's search documentation is uncertain, offer a buffer (e.g., set the cutoff a few months before the nominal last-search date) and log the choice.
+3. **Record what was actually run.** For every database, log the exact final string including the date limiter, the date it was run, and the interface hit count (needed for Phase 3's export integrity check and Phase 9's PRISMA counts).
+
 ### Step 2.4: Additional Databases (Plan-First, Human-in-the-Loop)
 
 Ask the researcher:
@@ -602,6 +761,8 @@ Log every search string, every synonym decision, every cross-validation result, 
 - Review each web-interface string for completeness and accuracy.
 - Review each API-translated query for correct syntax and semantic equivalence to the web-interface string.
 - Review each cross-validation finding.
+- **Update mode:** confirm that each reused string is verbatim-identical to the prior review's string apart from the date limiter, and confirm that each date limiter's syntax has been **verified live** in the target platform (Step 2.3c) — ideally with the librarian.
+- Confirm that no institutional database has been silently replaced by a free API (see the scope warning above).
 - Approve, modify, or reject each string, each API query, and each database plan.
 - Confirm the final set.
 
@@ -627,6 +788,15 @@ Before executing any retrieval scripts, present the following guidance to the re
 >    - Place the exported file in `{working_directory}/records/` and I will integrate it into the unified dataset.
 >
 > **I will now provide a retrieval script. Before running it, ensure you have institutional access set up as described above.**"
+
+**Reminder (Boundaries):** if a protocol database is institutional-only, the path is manual search + export — never a free-API substitute.
+
+### Export Integrity Check (all manual exports, both modes)
+
+After integrating each manual export, run and log two checks:
+
+1. **Abstract completeness.** Count records with a non-empty abstract field. If a substantial share of records lack abstracts (some platforms' default export profiles omit them — this has crippled screening in practice), **stop and ask the researcher to re-export with abstracts included** (e.g., choose the "full record"/"complete reference" export profile) before proceeding. Log the re-export.
+2. **Hit-count vs export-count reconciliation.** Compare the interface hit count (recorded at search time, Step 2.3c) with the number of records actually present in the export file. Small discrepancies are common (e.g., interface says 1,159; the RIS holds 1,157 — records withdrawn or deduplicated by the platform between search and export). Log both numbers and the delta. If the delta is small, record it and proceed; if it is large or unexplained, ask the researcher to re-run the export. The PRISMA "records identified" count uses the **exported** count, with the discrepancy noted in the search documentation.
 
 ### Python Environment Setup (for users with no coding experience)
 
@@ -748,26 +918,28 @@ Provide the following diagnostic script and resolution paths to the researcher:
 
 **If SSL errors are detected, present these resolution paths in order of preference:**
 
-> **"Your network appears to intercept HTTPS connections (SSL inspection). This is common on university and hospital networks. Here are three ways to fix it, from most secure to least:**
+> **"Your network appears to intercept HTTPS connections (SSL inspection). This is common on university and hospital networks. Here are three ways to fix it. Option A changes nothing on your system; Options B and C are explained so you can decide whether you consent to them:**
 >
-> **Option A (recommended): Install your institution's CA certificate into Python**
-> 1. Contact your IT help desk and ask for your institution's root CA certificate file (usually a `.pem` or `.crt` file).
-> 2. Find Python's certificate store by running: `python3 -c "import certifi; print(certifi.where())"`
-> 3. Open the file from step 2 in a text editor and paste the contents of your institution's certificate at the end. Save.
+> **Option A (recommended — non-invasive, script-scoped): Point this script at your institution's certificate via an environment variable**
+> Obtain your institution's CA certificate file from your IT help desk (usually a `.pem` or `.crt`), or use your system's bundle if it already includes it. Then run the script with the `SSL_CERT_FILE` environment variable set — this affects **only the command you run**, and changes nothing permanently:
+> - **Mac/Linux:** `SSL_CERT_FILE=/path/to/institution-ca.pem python3 retrieval_script.py`
+>   (If your system bundle already trusts the institutional CA, try `/etc/ssl/certs/ca-certificates.crt` on Linux or `/etc/ssl/cert.pem` on Mac.)
+> - **Windows:** `set SSL_CERT_FILE=C:\path\to\institution-ca.crt` then run the script.
+>
+> **Option B (persistent — requires your consent to modify a certificate bundle): Append your institution's CA certificate to Python's `certifi` bundle**
+> **What this changes:** it edits the certificate bundle that *all Python programs using certifi in this environment* will trust from now on (it does not touch your operating system or browser trust store). Only do this if you understand and accept that. If you consent:
+> 1. Get the institution's root CA certificate file from IT.
+> 2. Find the bundle: `python3 -c "import certifi; print(certifi.where())"`
+> 3. Paste the certificate's contents at the end of that file and save. (Note: reinstalling/upgrading `certifi` undoes this.)
 > 4. Re-run `network_check.py` to verify.
->
-> **Option B: Point Python to your system's certificate bundle**
-> - **Mac/Linux:** Run the retrieval script with this environment variable set:
->   `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt python3 retrieval_script.py`
->   (The exact path may vary; try `/etc/ssl/cert.pem` on Mac.)
-> - **Windows:** Run:
->   `set SSL_CERT_FILE=C:\path\to\your\institution\ca-bundle.crt`
->   then run the script.
+> Using a virtual environment (as set up in Step 3 above) keeps this change contained to the review project.
 >
 > **Option C (last resort — less secure): Disable SSL verification for this script only**
 > This skips certificate checking entirely. Only use this if Options A and B fail, and only for the retrieval script.
 > The retrieval script includes a `--no-ssl-verify` flag for this purpose. Running with this flag will print a security warning.
-> **Note:** This does not affect your browser or other applications."
+> **Note:** This does not affect your browser or other applications.
+>
+> **I will never ask you to modify your operating-system or browser trust store. If IT documentation suggests that, it is your and your IT department's decision, not part of this workflow.**"
 
 ### Retrieval Script
 
@@ -782,6 +954,17 @@ Provide a Python script using `requests` for all HTTP-based API access, plus `py
 ```
 pip install requests certifi pybliometrics==4.4.1
 ```
+
+### Environment-Fragility Fallbacks (NEVER assume the happy path)
+
+Locked-down institutional machines routinely have broken or unavailable packaging: `pip install` may be blocked by proxy policy, `requests` may be present but broken (e.g., an incompatible `urllib3`/OpenSSL pairing), and admin rights may be absent. **Never assume `pip install` succeeds.** Apply this ladder:
+
+1. **Try the preferred dependency** (`requests`, `bib-dedupe`, etc.) inside the virtual environment.
+2. **If installation or import fails, fall back to the Python standard library** rather than sending the researcher on an environment-repair quest:
+   - **HTTP:** every retrieval script must be written so its network layer can run on `urllib.request` alone (the Network Environment Check above already uses `urllib` for exactly this reason). Provide a `--stdlib-http` mode or an automatic fallback: `try: import requests ... except ImportError: use urllib`. The `--no-ssl-verify` flag must work in both modes (for `urllib`, via an unverified `ssl` context, with the same printed warning).
+   - **Deduplication:** if `bib-dedupe` cannot be installed, use the pure-stdlib deterministic fallback specified in Phase 4.
+3. **Diagnose before replacing.** If an import fails with an error other than `ModuleNotFoundError` (e.g., SSL/compiled-extension errors), show the researcher the exact error, explain in plain language, and offer the stdlib path immediately rather than iterating on installs.
+4. **Log the fallback.** Record in the audit log which implementation actually ran (library + version, or "stdlib fallback"), since PRISMA-S asks for the tools used.
 
 **Script requirements:**
 
@@ -980,7 +1163,19 @@ After each manual export, confirm receipt:
 
 ---
 
-## Phase 4: Deterministic Deduplication
+## Phase 4: Stable Record IDs & Deterministic Deduplication
+
+### Step 4.0: Stable Record IDs (MANDATORY — assign before anything else)
+
+Every record that survives into screening gets a **stable, content-derived ID** that survives dedup re-runs, source re-exports, and re-ordering. Positional IDs (row numbers, "record 1..N") **break** the mapping between decisions and records the first time anything is re-run — never use them as the ID of record-level decisions.
+
+**ID rule:**
+- If the record has a DOI: `record_id = SHA-256(normalised_DOI)` (lowercase; strip `https://doi.org/`, `doi:` prefixes, and surrounding whitespace), truncated to the first 16 hex characters for readability.
+- If no DOI: `record_id = SHA-256(normalised_title + "|" + year)` — title lowercased, punctuation and extra whitespace stripped; year as 4 digits or empty string if unknown.
+- Prefix with `R-` (e.g., `R-a3f19c02d4e88b71`).
+- The normalisation functions are part of the review's code and are logged (hashed), so IDs are recomputable by anyone.
+
+All audit entries, decisions files, checkpoints, worksheets, dual-screening records, and PRISMA counts reference records by this stable ID.
 
 ### Instructions
 
@@ -988,6 +1183,11 @@ After each manual export, confirm receipt:
 ```
 pip install bib-dedupe
 ```
+
+**If `bib-dedupe` cannot be installed** (blocked pip, dependency conflicts — see Environment-Fragility Fallbacks, Phase 3), use the **pure-stdlib deterministic fallback**, which preserves the "deterministic only, HITL for suspected" rule:
+- **Auto-merge (confident duplicates):** exact normalised-DOI match, OR exact normalised-title + year match (same normalisation as Step 4.0).
+- **Human-review queue (suspected duplicates):** `difflib.SequenceMatcher` ratio on normalised titles above a configurable threshold (default 0.90) where DOI/year do not confirm — presented to the researcher one by one, exactly like `bib-dedupe`'s suspected-duplicate flow. No probabilistic auto-merging.
+- Log which implementation ran.
 
 1. **Pause AI operations.** Provide the researcher with a Python script using `BibDedupe` for deterministic deduplication. (Note: `ASReview` via `asreview-datatools` can also perform deduplication using `difflib.SequenceMatcher`, but `BibDedupe` is recommended for its zero-false-positives design goal.)
 2. Before the script, explain in plain language:
@@ -1007,13 +1207,146 @@ pip install bib-dedupe
 
 These counts feed the PRISMA flow diagram.
 
+### Phase 4b (UPDATE MODE ONLY): Deduplication Against the Prior Corpus & Carry-Forward
+
+After within-retrieval dedup, remove from the screening set every new record that is **already present in the prior review's screened corpus** — screening them again wastes the dominant cost centre of the review and corrupts the PRISMA update counts.
+
+1. **Ingest the prior corpus** from `prior_corpus_paths` (RIS/BibTeX/CSV; EndNote libraries exported to RIS first — see Phase 0). Assign stable IDs (Step 4.0) to every prior-corpus record using the same normalisation code.
+2. **Match** new records to prior-corpus records with the same deterministic rules as within-retrieval dedup (exact normalised DOI; exact normalised title+year; `difflib` fuzzy matches go to the human-review queue). **No probabilistic auto-removal.**
+3. **Carry-forward:** for every matched record, look up the prior review's decision if the corpus export contains one, and record it in the audit log as `decision_source: "carried_forward_from_prior_review"`. Carried-forward records are **not re-screened** (per the Phase 0 carry-forward rule) unless the researcher explicitly requested re-screening as a logged amendment. If the prior corpus contains records but no decisions, log the match as "present in prior corpus — removed from update screening set" without inventing a decision.
+4. **Log counts** (these feed the PRISMA update layout, Phase 9):
+   - New records after within-retrieval dedup.
+   - Records matched to the prior corpus and removed (auto vs human-confirmed).
+   - Carried-forward decisions by type.
+   - **Records to screen in this update** (the carry-forward screening set).
+5. **Sanity report to the researcher:** present prior-corpus size, match counts, and the final screening-set size, and ask for confirmation before Phase 5a begins (e.g., "Prior corpus: 17,483 records. New retrieval after dedup: 4,515. Matched to prior corpus and removed: 2,261. **To screen in this update: 2,254.** Proceed?").
+
+---
+
+## Phase 5a: Screening Calibration Pilots (MANDATORY before the full screen)
+
+### Rationale
+
+Screening thousands of records under un-validated criteria wastes the human's audit effort and risks **systematic** error that a per-record audit will not surface as a pattern until far too late. This phase validates the screening — criteria, prompt, and rules — on small pilots with 100% human audit and an agreement gate, **before** committing to the full set. The Cochrane Handbook's requirement to pilot-test eligibility criteria and screening forms is implemented here for AI-assisted screening. In operational use this loop has taken agreement from κ ≈ 0.30 (raw PICO criteria) to κ ≥ 0.70 (after rule extraction) in two to three cycles; do not skip it.
+
+### The loop
+
+```
+Pilot (50 records, stratified) → blind 100% human audit → compute
+κ + % agreement + PABAK → κ ≥ 0.60 on this fresh pilot?
+   NO  → extract disagreement-derived rules → researcher approves →
+         update prompt + eligibility-rules registry (new prompt hash)
+         → run a NEW pilot on FRESH records → repeat
+   YES → convergence check passed? (see below)
+            NO  → one more pilot (harder, include-enriched, no new rules)
+            YES → LOCK criteria → GATE 2a → Phase 5 full screen
+```
+
+### Step 5a.1: Pilot sampling (stratified, not random)
+
+Default pilot size: **50 records**, drawn from **fresh records only** (never records used in a previous pilot).
+
+**Do not draw a purely random pilot.** With typical screening prevalence, a random sample is ~90% easy excludes and tells you almost nothing about the dangerous cells (missed includes, mishandled edge cases). Instead:
+
+1. Have the AI screen a **seeded candidate slice** of the pool (3–5× the pilot size, drawn deterministically by stable-ID order or seeded sampling) using the current prompt and criteria.
+2. From the AI's outputs on that slice, draw the 50-record pilot **stratified by AI decision × confidence**, oversampling the informative cells: include **all** INCLUDE and UNCERTAIN recommendations (up to ~half the pilot), then low-confidence EXCLUDEs, topping up with a random draw of high-confidence EXCLUDEs.
+3. A deterministic keyword classifier **may** be used to enrich the candidate slice for likely-relevant records — but only as a clearly labelled **high-recall triage/stratification aid, never the authoritative screen** (see Boundaries; in operational use such classifiers over-include by 3–4×, which is fine for enrichment and invalid as a screen).
+4. Log the sampling scheme, seed, slice, and final pilot composition.
+5. **Pre-lock outputs do not count.** AI outputs on candidate-slice records that were *not* selected into a pilot were produced under un-locked criteria: mark them superseded and return those records to the pool for re-screening under the locked prompt in Phase 5. Only pilot records receive final (human) decisions in this phase.
+
+### Step 5a.2: Blind 100% human audit of the pilot
+
+The researcher screens **all 50 pilot records without seeing the AI's recommendations** (ground-truth style presentation, as in Phase 5's Human Ground-Truth Validation), recording a decision (INCLUDE / EXCLUDE / UNCERTAIN-defer) and a brief reason for each. Only after all 50 human decisions are recorded are the AI's outputs revealed and compared. Pilot decisions made by the human are **final human decisions** — they carry into the review's results and these records are not re-screened.
+
+### Step 5a.3: Compute the agreement metrics (all of them, every pilot)
+
+Report, for every pilot, **all** of the following — never κ alone (see the κ Interpretation Guidance in Phase 5 for why):
+
+- **Cohen's κ, 3-category** (INCLUDE / EXCLUDE / UNCERTAIN).
+- **Cohen's κ, binary retain/discard** (retain = INCLUDE or UNCERTAIN; discard = EXCLUDE). This is the **primary gate metric**, because retain/discard is what determines whether a study survives to full text.
+- **Raw % agreement** (both forms).
+- **PABAK** (prevalence-adjusted bias-adjusted kappa): binary `PABAK = 2·Pₒ − 1`; k-category `PABAK = (k·Pₒ − 1)/(k − 1)`, where Pₒ is observed agreement.
+- **The disagreement table itself**, with direction: AI-discard/human-retain cells (potential missed includes) are the dangerous ones and warrant rule extraction **even when κ passes the gate**.
+- Note the pilot's composition (stratified pilots deliberately shift prevalence, which moves κ between pilots even at identical % agreement — interpret accordingly).
+
+### Step 5a.4: κ gate and calibration cycles
+
+**Gate rule: proceed to the full screen only when binary retain/discard κ ≥ 0.60 on a fresh pilot.** The 0.60 threshold is a heuristic gate, read alongside % agreement, PABAK, and the direction of disagreements — not a mechanical pass/fail in isolation.
+
+If the gate fails (or dangerous-direction disagreements demand it):
+
+1. **Extract candidate rules from every disagreement.** For each pilot disagreement, identify what general rule would have produced the human's decision. Draft it as (a) a one-sentence rule for the **eligibility-rules registry** (below) and, where a concrete exemplar helps, (b) a few-shot calibration example in the existing Active Learning format (Phase 5) — the two mechanisms share the same review-and-approve flow.
+2. **Researcher approves, modifies, or rejects each rule/example.** Log per the Active Learning calibration schema, with `trigger.gate: "Gate 2a"` and `trigger.milestone` naming the pilot.
+3. **Update the prompt** (rules registry block + calibration examples), hash it as a new `prompt_version_hash`.
+4. **Run a NEW pilot on fresh records** (Step 5a.1) under the updated prompt. Never re-score the same pilot with new rules and call it validation — rules derived from a pilot's disagreements will trivially "fix" that pilot.
+
+### Step 5a.5: Convergence (stability) check and criteria lock
+
+Before locking, require **at least one pilot that passes the κ gate without needing any new rules**, drawn as a *harder* sample (include-enriched / edge-case-enriched stratification). Passing only on pilots that each generated fresh rules means the criteria are still moving; convergence means a fresh, difficult sample was handled by the existing ruleset.
+
+When convergence is demonstrated: **LOCK the criteria** — the PICO criteria, the eligibility-rules registry, and the calibration examples are frozen as the locked screening specification, with a final `prompt_version_hash`. Any later change is a logged protocol deviation requiring researcher approval, and triggers the question of whether already-screened batches must be re-screened under the new rules (present the trade-off; log the decision).
+
+### The Eligibility-Rules Registry (created here; used everywhere)
+
+Raw PICO cannot express the rules that actually decide borderline records. Maintain `{working_directory}/eligibility_rules_registry.json` as the machine-readable, versioned home for them. The calibration loop (5a and the per-batch Active Learning protocol in Phase 5) **writes into this registry**; the screening prompt **reads from it** (as the `{ELIGIBILITY_RULES_BLOCK}`).
+
+Schema per rule:
+
+```json
+{
+  "rule_id": "ER-001",
+  "category": "publication_type | condition_boundary | informant_vs_subject | traits_vs_diagnosis | population_subgroup | proxy_outcome | other",
+  "statement": "one-sentence operational rule, phrased so a screener (human or AI) can apply it directly",
+  "disposition": "INCLUDE | EXCLUDE | UNCERTAIN (defer to full text)",
+  "origin": "pilot/batch + record_id(s) of the disagreement(s) that produced it",
+  "approved_by": "researcher id",
+  "approved_at": "ISO-8601",
+  "status": "ACTIVE | RETIRED | SUPERSEDED",
+  "prompt_versions": ["hashes of prompt versions containing this rule"]
+}
+```
+
+**The registry must be able to represent, at minimum, rules of these kinds** (illustrative phrasings — actual rules come from this review's disagreements and the researcher's judgment):
+
+- **Condition boundaries:** e.g., studies of condition sub-types that a criterion's framework has reclassified count only when studied *alongside* the in-scope conditions, not alone.
+- **Informant vs subject:** e.g., a parent/carer reporting *on the participant's* outcome is includable; the parent's *own* outcome as the endpoint is not.
+- **Traits vs diagnosis:** e.g., samples defined by elevated traits are excluded where the population criterion requires formal diagnosis; a **distinct, formally diagnosed subgroup** within a broader sample may be UNCERTAIN (defer), whereas a sample where in-scope participants are merely *possibly present* is excluded.
+- **Proxy/partial outcomes:** whether outcome-adjacent proxies, impact measures, or instrument subscales count as measuring the outcome.
+- **Context-specific outcome variants:** e.g., transient situational forms of the outcome (such as procedural/perioperative states) may be UNCERTAIN rather than a clean include/exclude.
+- **Publication-type nuance:** conference abstracts reporting a real study, letters, case reports, and book chapters are **not auto-excluded** (assess against criteria; often UNCERTAIN → full-text/adjudication); reviews, meta-analyses, editorials, and overview presentations are excluded (with citation-chasing of relevant reviews noted separately).
+
+### ── GATE 2a: Calibration Complete — Criteria Locked ──
+
+**MANDATORY.** Present to the researcher: every pilot's composition and metrics (κ ×2, % agreement, PABAK, disagreement tables), the full eligibility-rules registry, the active calibration examples, and the final locked `prompt_version_hash`. The researcher confirms the lock. Log confirmation with `created_at`.
+
+**Do not begin the full Phase 5 screen until Gate 2a is passed.**
+
 ---
 
 ## Phase 5: Title-Abstract Screening (AI-Assisted)
 
+### Screening at Scale (Execution Protocol)
+
+Genuine per-record LLM reading of the screening pool is **the dominant cost centre of the entire review**. It is a multi-hundred-step, multi-session effort, not an atomic action. This protocol is how it is actually executed.
+
+**1. Stable record IDs (mandatory).** All screening artefacts key on the stable IDs from Phase 4 (Step 4.0). Re-runs, re-exports, and dedup re-runs must never scramble the decision↔record mapping.
+
+**2. Batching.** Screen in fixed batches (default **250** records; `screening_batch_size` in config), drawn **deterministically** — by stable-ID sort order, or by a documented stratified scheme carried over from Phase 5a. Every batch produces three files in `screening/title_abstract/batches/`:
+   - `batch_{N}_records.json` — the raw metadata of the batch's records (frozen input);
+   - `batch_{N}_decisions.jsonl` — **append-only**: one line per completed record with the AI's structured output, `prompt_version_hash`, `model_id_used`, and timestamp;
+   - `batch_{N}_worksheet.csv` — the human-audit worksheet, ordered by audit priority (see Gate 2), with columns for the human's AGREE/OVERRIDE and reason.
+
+**3. Checkpoint / resume.** The append-only decisions file **is** the checkpoint: it is flushed to disk record-by-record (or at worst per small sub-chunk), so any interruption — session end, crash, network loss — resumes from the last completed record, never restarts a batch. On resume: verify the audit-log hash chain, reconcile the decisions file against the audit log, log a `SCREENING_RESUMPTION` event (batch, last completed record ID, chain verification result), and confirm the `model_id` of the resuming session (if it differs from the previous session's, log it — this is expected across long screens and is why `model_id_used` is recorded per batch and per entry).
+
+**4. Throughput honesty (set expectations upfront).** Before the full screen begins, give the researcher an explicit estimate: *records → batches → sessions*. State plainly that genuine reading of each record is what makes the screen valid and that thousands of records **do not screen instantly** — e.g., "2,254 records = 10 batches of 250; expect this to span multiple working sessions." Let the researcher choose the pacing agreed at kickoff (checklist item 11): **stage-and-audit** (screen batch → human audits it → calibration check → next batch; slower wall-clock, catches drift earliest) or **one consolidated pass** (screen all batches, then audit; faster to a full recommendation set, drift caught only by the automatic monitors). Log the choice. Never silently degrade to rushed, shallow reads to appear fast — a fast invalid screen is worthless.
+
+**5. Classifier vs reader (hard rule).** Any deterministic keyword classifier, embedding ranker, or similar triage mechanism used for stratification or prioritisation must be labelled in all outputs and logs as a **high-recall triage aid, not the authoritative screen**. The authoritative recommendation for every record comes from genuine structured reading (the prompt below). Record in the audit log that this is so. (Operationally, keyword classifiers over-include several-fold; treating one as the screen would invalidate the review.)
+
+**6. Per-batch model logging.** At the start of every batch (and after every resumption), record the model id + version in `model_ids_per_batch` and on each decision entry.
+
 ### Screening Prompt Template
 
-For each record, use the following structured prompt. All calls use `temperature=0` and the researcher-set seed. **Hash every LLM response and log the hash in `output_hash`.**
+For each record, use the following structured prompt at `temperature=0`, under the **locked** criteria and `prompt_version_hash` from Gate 2a. **Hash every LLM response and log the hash in `output_hash`.** (The researcher's seed is logged for traceability; per the Reproducibility Statement, do not describe screening outputs as seed-reproducible.)
 
 ```
 ROLE: You are a systematic review screening assistant. You produce
@@ -1029,8 +1362,15 @@ REVIEW PROTOCOL:
 - Date range: {date_range} [or "N/A — no date restrictions"]
 - Language: {languages} [or "N/A — no language restrictions"]
 
-{CALIBRATION_EXAMPLES_BLOCK — empty for Batch 1; populated by the
-Active Learning Protocol (see below) from Batch 2 onward}
+{ELIGIBILITY_RULES_BLOCK — the ACTIVE rules from the eligibility-rules
+registry (locked at Gate 2a), rendered as:
+"ELIGIBILITY RULES (researcher-approved refinements of the criteria
+above; apply them wherever they bear on a criterion):
+ ER-001 [{category}]: {statement} → {disposition}
+ ..."}
+
+{CALIBRATION_EXAMPLES_BLOCK — populated during the Phase 5a pilots and
+by the Active Learning Protocol (see below) between batches}
 
 RECORD ID: {record_id}
 Title: {title}
@@ -1092,6 +1432,17 @@ CONFIDENCE: [High / Medium / Low]
 REASONING SUMMARY: [one-sentence plain-language summary]
 ```
 
+**When a registry rule bears on a criterion,** the structured rationale must name the rule ID applied (in `decision_rule_applied`), so every borderline decision is traceable to an approved rule rather than to ad-hoc judgment.
+
+### UNCERTAIN routing and confidence levels (defined)
+
+- **UNCERTAIN routing:** every record whose final (human-confirmed) status is UNCERTAIN is **retained** — it proceeds to full-text retrieval (Phase 6) and full-text screening/adjudication (Phase 7). UNCERTAIN is never a soft exclude.
+- **Confidence levels** (the AI must apply these definitions, not vibes):
+  - **High** — every applicable criterion was assessed on explicit abstract evidence (direct quotes); no UNCLEAR assessments.
+  - **Medium** — the decision rests partly on reasonable inference (e.g., population strongly implied but not stated); at most one criterion inferred rather than quoted.
+  - **Low** — one or more criteria assessed with "No information in abstract" or conflicting signals; the recommendation could plausibly flip at full text.
+- Low-confidence decisions are ordered first within their category in the human-audit worksheet (see Gate 2).
+
 ### Screening Performance Monitoring
 
 #### Automatic Batch Consistency Checks (every 50 records)
@@ -1138,11 +1489,22 @@ This is separate from the 100% audit in Gate 2. The purpose is to compute screen
 
 5. Log all metrics, ground-truth decisions, and alerts to `audit_log.json` with `created_at` timestamps.
 
+#### κ Interpretation Guidance (applies everywhere κ is computed: Phase 5a pilots, Gate 2b, Phase 7)
+
+Cohen's κ is mandatory but **base-rate sensitive**, and screening prevalence is heavily skewed (often ~90% exclude). This produces the well-known **"kappa paradox"**: at high, even identical, raw agreement, κ moves substantially with the prevalence mix of the sample. Operationally observed: two pilots with identical 92% raw agreement yielded κ = 0.79 and κ = 0.72 purely because the second sample was more EXCLUDE-dominated. Therefore:
+
+1. **Always report the triple:** κ **and** raw % agreement **and** PABAK (prevalence-adjusted bias-adjusted kappa: binary `2·Pₒ − 1`; k-category `(k·Pₒ − 1)/(k − 1)`), in **both** the 3-category (INCLUDE/EXCLUDE/UNCERTAIN) and binary retain/discard forms. Never report or gate on κ alone.
+2. **Interpret against the sample's prevalence.** A κ drop between pilots/batches with stable % agreement and PABAK usually reflects composition, not degraded screening. A drop in all three reflects real disagreement.
+3. **The 0.60 gate is a heuristic**, read alongside % agreement, PABAK, and — most importantly — **the direction of disagreements**: AI-discard/human-retain disagreements (missed includes) are the dangerous ones and warrant rule extraction and action **even when κ is acceptable**.
+4. Log the full 2×2 (and 3×3) agreement tables, not just the summary statistics, so the direction is always inspectable.
+
+*(Internal design guidance: PABAK is used as a standard descriptive adjustment; no new external standard is being invoked.)*
+
 #### Active Learning — Prompt Calibration Protocol
 
 **Purpose:** As the human audits the AI's screening decisions, systematic error patterns emerge — the AI may consistently misjudge certain study types, populations, or interventions. This protocol uses the human's corrections as few-shot calibration examples to improve the screening prompt for subsequent batches. This is in-context learning (not fine-tuning): the model itself does not change, but the prompt is enriched with real examples from this review, making the AI's recommendations progressively closer to the researcher's ground truth.
 
-**When it triggers:** After each completed batch cycle — specifically, after (a) the AI screens a batch of 50 records, (b) the 20% ground-truth validation is computed, AND (c) the 100% human audit of the batch is complete. The protocol runs before the next batch is screened. **It does not apply to Batch 1** (no correction data exists yet).
+**When it triggers:** After each completed batch cycle — specifically, after (a) the AI screens a batch, (b) the 20% ground-truth validation is computed, AND (c) the human audit of the batch is complete. The protocol runs before the next batch is screened. (Batch 1 of the full screen already carries the calibration examples and eligibility rules produced by the Phase 5a pilots; this protocol continues refining them, subject to the post-lock deviation rule below.) Note the monitoring cadence (every 50 records) is independent of the execution batch size (default 250): a 250-record execution batch contains five 50-record monitoring checks.
 
 **Step 1: Extract override patterns**
 
@@ -1260,8 +1622,8 @@ Schema for each calibration log entry in `audit_log.json`:
   "actor": "AI",
   "trigger": {
     "milestone": "string — human-readable milestone that triggered this cycle, e.g., 'After human audit of title-abstract screening Batch 3 (records 101–150)'",
-    "phase": "5 | 7 | 8",
-    "gate": "string — which gate's audit produced the correction data, e.g., 'Gate 2' or 'Gate 4'",
+    "phase": "5a | 5 | 7 | 8",
+    "gate": "string — which gate's audit produced the correction data, e.g., 'Gate 2a', 'Gate 2', or 'Gate 4'",
     "batch_number": "integer — batch number that triggered this cycle",
     "batch_range": "string — record range, e.g., 'records 101–150'",
     "records_audited_this_batch": "integer",
@@ -1330,15 +1692,17 @@ Schema for each calibration log entry in `audit_log.json`:
 }
 ```
 
-**Reproducibility note:** Adding calibration examples changes the prompt, which changes the deterministic output for records screened under the new prompt. This is by design — the prompt improvement is measured and documented. The audit log records which prompt version was used for each screening call (via `prompt_version_hash`), so any output can be traced to its exact prompt. A researcher using the same prompt version + seed will get identical results.
+**Registry connection:** Where a correction generalises to an operational rule (not just an exemplar), it is also written to the **eligibility-rules registry** (Phase 5a) through the same approval flow, with the rule's `origin` pointing at the triggering records. Because the criteria were **locked at Gate 2a**, any post-lock rule addition or modification is a logged protocol deviation: present the trade-off (including whether already-screened batches should be re-screened under the amended rules) and log the researcher's decision.
+
+**Reproducibility note:** Adding calibration examples changes the prompt, which changes what is asked of the model for records screened under the new prompt. This is by design — the prompt improvement is measured and documented. The audit log records which prompt version was used for each screening call (via `prompt_version_hash`), so any output can be traced to its exact prompt and to the logged model version. Per the Reproducibility Statement, this versioning-and-logging — not seed determinism — is the basis of the review's reproducibility.
 
 **Guardrail: Maximum prompt growth.** The calibration block must not exceed 5 examples. If a 6th example is warranted, it must replace the least informative existing example (lowest hit rate over the last two batches). This prevents unbounded prompt growth that could degrade model performance by consuming context window space needed for the abstract itself.
 
-### ── GATE 2: 100% Human Audit of Title-Abstract Screening ──
+### ── GATE 2: Human Audit of Title-Abstract Screening (100% by default) ──
 
-**MANDATORY. ALL decisions require human confirmation.**
+**MANDATORY. No AI recommendation becomes a decision without human confirmation.** The default and gold standard is a 100% audit of every record; the opt-in risk-based alternative below changes only *which* records the researcher personally audits — every final decision remains a human decision (directly, or via the dual-screening and adjudication of Phase 5b).
 
-After the AI has screened all records, present every record to the researcher (Reviewer A) with the AI's recommendation, reasoning, and evidence:
+Per the pacing chosen at kickoff (stage-and-audit per batch, or one consolidated pass after all batches), present the audited records to the researcher (Reviewer A) with the AI's recommendation, reasoning, and evidence:
 
 ```
 RECORD: {record_id} — {title}
@@ -1351,16 +1715,25 @@ YOUR DECISION: [ ] AGREE  [ ] OVERRIDE → [INCLUDE / EXCLUDE]
 OVERRIDE REASON (if applicable): _______________
 ```
 
-**Workflow:**
-1. Present records in batches (batch size configurable by researcher; default 25).
-2. Prioritise UNCERTAIN records first.
-3. Then EXCLUDE recommendations (Low confidence first).
-4. Then INCLUDE recommendations (Low confidence first).
-5. For each record, the researcher must select AGREE or OVERRIDE.
-6. If OVERRIDE, the researcher must provide a reason.
-7. Log every decision with `created_at` timestamp.
+**Workflow (100% audit — the default and gold standard):**
+1. Present records in audit batches (batch size configurable by researcher; default 25, `audit_batch_size`), using the per-batch **worksheet CSVs** generated by the Screening at Scale protocol so the researcher can audit in a spreadsheet if preferred.
+2. **Audit-priority ordering** within and across worksheets: **UNCERTAIN first → then INCLUDE → then EXCLUDE by ascending confidence** (Low-confidence excludes before High-confidence excludes). This puts the decisions most likely to matter — and most likely to hide missed includes — at the front of the researcher's attention.
+3. For each record, the researcher must select AGREE or OVERRIDE.
+4. If OVERRIDE, the researcher must provide a reason.
+5. Log every decision with `created_at` timestamp, keyed by stable record ID.
+6. Pilot records audited in Phase 5a are already human-decided and are not re-presented.
 
-**Do not proceed to Phase 5b until Gate 2 is complete and logged.**
+**Risk-based audit (opt-in alternative at large N — documented as a limitation, never the silent default):**
+
+At large N, a strict 100% human audit of title-abstract decisions can be practically prohibitive. If — and only if — the researcher explicitly opts in (kickoff checklist item 10, confirmable here), a **risk-based audit** may substitute at Gate 2:
+
+- **100% human audit is retained for:** all UNCERTAIN records, all INCLUDE recommendations, and all Low-confidence EXCLUDEs.
+- **A random sample (researcher-set, default 20%, seeded and therefore reproducible) is audited from:** Medium/High-confidence EXCLUDEs.
+- **Escalation rule:** if the sampled audit of any stratum finds a missed include (human overrides EXCLUDE → INCLUDE), the audit of that stratum escalates — double the sample; a second missed include escalates to 100% audit of that stratum.
+- **The trade-off, stated plainly to the researcher before they opt in:** *"The Cochrane Handbook's standard is independent duplicate screening of all records; auditing a sample of high-confidence exclusions means some AI exclusion decisions receive dual human scrutiny only via Reviewer B (Phase 5b) rather than via your audit. This is a documented limitation of the review and will be reported as such (methods, AI Transparency Statement, and AMSTAR-2 self-assessment). The empirical justification is the screening performance validated in the Phase 5a pilots and monitored per batch — if that monitoring degrades, the audit escalates."*
+- Log the opt-in, the sampling scheme and seed, all escalations, and include the limitation text in Phase 10 exports.
+
+**Do not proceed to Phase 5b until Gate 2 (in the chosen, logged mode) is complete and logged.**
 
 ---
 
@@ -1374,9 +1747,9 @@ Cochrane Handbook v6.5 (Chapter 4) requires independent duplicate screening to m
 
 1. **Reviewer B** must screen the same records independently. Reviewer B can be:
    - A second human reviewer (preferred for Cochrane compliance).
-   - A second blinded AI pass with a different prompt variant or different seed (acceptable for non-Cochrane reviews, but must be documented as a limitation).
+   - A second blinded AI pass with a **different prompt variant** — and, where available, a different model version (acceptable for non-Cochrane reviews, but must be documented as a limitation). Per the Reproducibility Statement, merely changing the seed does not create a meaningfully independent second reviewer for agentic screening; independence comes from a genuinely different prompt formulation and/or model, both logged.
 
-2. **Reviewer B does not see Reviewer A's decisions.** Present records to Reviewer B in the same format as the ground-truth validation (no AI recommendation shown if Reviewer B is human; if Reviewer B is a second AI pass, use a different seed).
+2. **Reviewer B does not see Reviewer A's decisions.** Present records to Reviewer B in the same format as the ground-truth validation (no AI recommendation shown if Reviewer B is human; if Reviewer B is a second AI pass, use the documented different prompt variant/model, blind to Reviewer A's outputs).
 
 3. **Conflict identification:** After both reviewers have completed screening, identify all records where Reviewer A and Reviewer B disagree.
 
@@ -1389,11 +1762,12 @@ Cochrane Handbook v6.5 (Chapter 4) requires independent duplicate screening to m
    > Please adjudicate: [INCLUDE / EXCLUDE]
    > Reason: _______________"
 
-5. **Compute inter-rater reliability:**
-   - **Cohen's Kappa** (for two reviewers on binary include/exclude).
+5. **Compute inter-rater reliability** per the κ Interpretation Guidance (Phase 5):
+   - **Cohen's Kappa** (binary retain/discard, and 3-category where both reviewers used UNCERTAIN).
    - **Percentage agreement.**
-   - Report and log both metrics.
-   - If Kappa < 0.60, flag as `LOW_AGREEMENT_ALERT` and recommend reviewing the eligibility criteria for ambiguity.
+   - **PABAK.**
+   - Report and log all metrics plus the agreement table, and interpret κ against the sample's prevalence (kappa paradox), not in isolation.
+   - If Kappa < 0.60, flag as `LOW_AGREEMENT_ALERT` and recommend reviewing the eligibility criteria and rules registry for ambiguity — attending first to the direction of disagreements (discard/retain conflicts).
 
 6. Log: all Reviewer B decisions, all conflicts, all adjudication outcomes, Kappa, percentage agreement, `created_at` timestamps.
 
@@ -1443,11 +1817,12 @@ Log the confirmed directory path.
 
 ### Instructions
 
-1. Use the same structured screening prompt as Phase 5, adapted for full-text input. Include all criteria with the same N/A handling.
-2. Apply the same `temperature=0` and researcher-set seed. Hash all responses.
-3. Apply the same performance monitoring system as Phase 5 (drift detection, 20% ground-truth validation, full metrics).
-4. Apply the same **Active Learning — Prompt Calibration Protocol** as Phase 5. Start with a fresh calibration (no carry-over from title-abstract screening), since full-text screening involves different evidence and different error patterns. Calibration examples from full-text overrides replace any title-abstract examples.
-5. Apply the same dual screening protocol as Phase 5b (Reviewer A + Reviewer B + conflict resolution + Cohen's Kappa).
+1. Use the same structured screening prompt as Phase 5, adapted for full-text input. Include all criteria with the same N/A handling, and include the locked `{ELIGIBILITY_RULES_BLOCK}` — the registry applies at full text too (several rule categories, e.g., UNCERTAIN-deferral rules, are *resolved* here).
+2. Apply the same `temperature=0`. Hash all responses; log `prompt_version_hash` and `model_id_used` per decision (the Reproducibility Statement applies here identically).
+3. Apply the same **Screening at Scale execution protocol** as Phase 5 — stable IDs, batching (smaller default batches are sensible given full-text length; confirm with the researcher), append-only checkpointed decisions files, resume-after-interruption, and upfront throughput expectations. Full-text reading per record is slower than abstract reading; estimate accordingly.
+4. Apply the same performance monitoring system as Phase 5 (drift detection, 20% ground-truth validation, full metrics, κ Interpretation Guidance).
+5. Apply the same **Active Learning — Prompt Calibration Protocol** as Phase 5. Start with a fresh set of calibration *examples* (no carry-over from title-abstract screening), since full-text screening involves different evidence and different error patterns; the eligibility-rules *registry* carries over unchanged (post-lock changes remain logged deviations).
+6. Apply the same dual screening protocol as Phase 5b (Reviewer A + Reviewer B + conflict resolution + the κ triple).
 
 ### ── GATE 3: 100% Human Audit + Dual Screening Conflict Resolution ──
 
@@ -1503,7 +1878,7 @@ Log the confirmed directory path.
 
 ### Assessment Execution
 
-For each included study (after Gate 3), apply the parsed RoB framework using structured prompting at `temperature=0` with the researcher-set seed. Hash all responses.
+For each included study (after Gate 3), apply the parsed RoB framework using structured prompting at `temperature=0`. Hash all responses and log `prompt_version_hash` and `model_id_used` per assessment (the Reproducibility Statement applies here identically).
 
 ```
 ROLE: You are assisting with risk of bias assessment. You produce
@@ -1595,6 +1970,15 @@ EXAMPLE 1:
 
 After all gates are complete, automatically generate the PRISMA 2020 flow diagram by reading counts from `audit_log.json`. Include all counts from Identification through Inclusion, with exclusion reason breakdowns at each stage.
 
+**Update mode — use the PRISMA 2020 layout for updated reviews.** PRISMA 2020 provides flow-diagram templates that distinguish studies from the previous version of the review from those newly identified. The update diagram must book-keep, from the Phase 3/4/4b logs:
+
+- **Previous review column:** studies included in the previous version of the review (from the prior corpus decisions), reports of those studies.
+- **New search column — Identification:** records identified in the new (date-restricted) search, per database, using the **exported** counts with the hit-count/export-count deltas noted (Phase 3 Export Integrity Check).
+- **Duplicates removed** within the new retrieval (Phase 4).
+- **Records already present in the prior review's corpus, removed before screening** (Phase 4b) — reported as its own line so the update's screening workload is transparent; carried-forward decisions are noted here.
+- **New records screened / excluded / sought / assessed / included**, as in the standard flow (Phases 5–7), including pilot-screened records (their human decisions are final decisions and are counted in the screened totals).
+- **Total studies included in the updated review** = prior included studies (± any removed by amendment, each logged) + newly included studies.
+
 **Diagram output:**
 
 Generate the PRISMA flow diagram as:
@@ -1628,10 +2012,18 @@ exports/
 ├── ai_transparency_statement.md
 ├── search_strategies/
 │   └── [per-database].txt
+├── eligibility_rules_registry.json
+├── screening_pilots/
+│   ├── pilot_reports.md            ← per-pilot composition, κ + % agreement + PABAK, disagreement tables
+│   └── criteria_lock_record.md     ← locked prompt_version_hash, Gate 2a confirmation
 ├── screening_results/
 │   ├── title_abstract_screening.csv
 │   ├── full_text_screening.csv
-│   └── dual_screening_conflicts.csv
+│   ├── dual_screening_conflicts.csv
+│   └── audit_mode_statement.md     ← 100% or risk-based (with sampling scheme, escalations, limitation text)
+├── update_review/                   ← update mode only
+│   ├── prior_corpus_dedup_report.md
+│   └── carried_forward_decisions.csv
 ├── ground_truth_validation/
 │   ├── title_abstract_ground_truth.csv
 │   ├── full_text_ground_truth.csv
@@ -1642,8 +2034,8 @@ exports/
 │   ├── rob_calibration_history.csv
 │   └── calibration_effectiveness_report.md
 ├── inter_rater_reliability/
-│   ├── cohens_kappa_title_abstract.md
-│   └── cohens_kappa_full_text.md
+│   ├── cohens_kappa_title_abstract.md   ← κ + % agreement + PABAK + tables
+│   └── cohens_kappa_full_text.md        ← κ + % agreement + PABAK + tables
 ├── risk_of_bias/
 │   ├── rob_assessments.csv
 │   └── rob_summary_table.md
@@ -1660,7 +2052,7 @@ exports/
 
 **`ai_transparency_statement.md`** — the AI Transparency Block formatted for inclusion in a manuscript or appendix.
 
-**`performance_monitoring_report.md`** summarises: all alerts, drift events, AI-human agreement rates, ground-truth performance metrics, inter-rater reliability (Cohen's Kappa), override patterns, calibration effectiveness (per-batch accuracy trends, lesson hit rates, calibration regression events), and calibration warnings.
+**`performance_monitoring_report.md`** summarises: all alerts, drift events, AI-human agreement rates, ground-truth performance metrics, inter-rater reliability (Cohen's κ + % agreement + PABAK, per the κ Interpretation Guidance), pilot-phase metrics and the criteria-lock record, override patterns, calibration effectiveness (per-batch accuracy trends, lesson hit rates, calibration regression events), calibration warnings, and the model id/version used per batch.
 
 **`audit_chain_verification.py`** — provide with full beginner-friendly run instructions.
 
@@ -1672,7 +2064,7 @@ exports/
 
 2. **Independent dual screening.** Two independent reviewers (human and/or AI) screen all records, with conflict resolution by a third-party adjudicator. This meets the Cochrane Handbook v6.5 requirement for independent duplicate screening.
 
-3. **Reproducibility through determinism.** Temperature=0, researcher-set seed, versioned prompts, response hashing, and SHA-256 audit chaining ensure exact replication.
+3. **Reproducibility through versioning and complete logging.** Temperature=0 minimises variability; reproducibility itself comes from versioned, hashed prompts and criteria, fully logged per-record inputs/outputs/rationales, deterministic seeded sampling, per-batch model-version logging, and SHA-256 audit chaining — not from claimed seed-level determinism of agentic reasoning (see the Reproducibility Statement).
 
 4. **Transparency through structured logging and AI disclosure.** Every decision is logged with structured rationales (not raw CoT). The AI Transparency Block documents the AI's role, limitations, and configuration per PRISMA-trAIce and RAISE guidance.
 
@@ -1686,4 +2078,10 @@ exports/
 
 9. **No fabricated references.** Every guideline, framework, and publication cited in this skill has been individually verified. URLs are provided where available but may change — always verify by searching for the framework by name.
 
-10. **Active learning from human corrections.** The AI's screening and assessment prompts are progressively calibrated using real override examples from the researcher's audit. Each calibration is logged, version-hashed, researcher-approved, and measured for effectiveness. The model itself does not change — only the prompt is enriched with few-shot examples, preserving determinism for any given prompt version + seed.
+10. **Active learning from human corrections.** The AI's screening and assessment prompts are progressively calibrated using real override examples from the researcher's audit. Each calibration is logged, version-hashed, researcher-approved, and measured for effectiveness. The model itself does not change — only the prompt is enriched with few-shot examples and researcher-approved eligibility rules, every version of which is hashed so any decision is traceable to the exact instructions in force.
+
+11. **Updates are first-class.** An update review reuses the prior protocol and search strings verbatim (date-restricted), dedups against the prior corpus with carried-forward decisions, and reports with the PRISMA update layout — none of it improvised.
+
+12. **Pilot before scale.** No full screen begins until stratified calibration pilots with blind 100% human audit pass the κ gate (reported as κ + % agreement + PABAK, with disagreement direction) and the criteria — including the eligibility-rules registry — are locked at Gate 2a.
+
+13. **Honest about cost and about determinism.** Screening at genuine reading depth is the dominant cost of the review: the researcher gets an upfront records→batches→sessions estimate and chooses the pacing, and progress is checkpointed so it survives interruption. Reproducibility claims never exceed what the logging actually guarantees.
