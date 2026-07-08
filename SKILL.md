@@ -1,7 +1,7 @@
 ---
 name: systematic-review-coordinator
 metadata:
-  version: "5.0"
+  version: "7.0"
 description: >
   Orchestrates a rigorous, auditable, and PRISMA-compliant systematic
   literature review workflow — for NEW reviews and for UPDATES of
@@ -13,13 +13,30 @@ description: >
   screen, while enforcing 100% human audit of all inclusion/exclusion
   decisions and risk of bias assessments. Includes AI transparency
   reporting and generates a researcher-editable PRISMA flow diagram
-  (new-review and update layouts). Designed to be used by researchers
-  with no prior coding experience. Activates when a user requests a
-  systematic review, a review update, or a literature search based on
-  a research question.
+  (new-review and update layouts). v6 adds an automated quantitative
+  meta-analysis workflow. v7 makes study data extraction a first-class
+  phase for ALL reviews: a researcher-confirmed Target Data-Point List
+  (TDPL), an extraction-conventions registry, a pilot-based extraction
+  calibration loop with root-cause routing, independent dual
+  extraction, and quote-plus-location evidence anchors that are
+  machine-verified against each source document. Downstream synthesis
+  adds a human-gated analysis plan (Analytical Approach Summary), generation
+  of beginner-annotated R or Python analysis scripts with pinned
+  statistical libraries (all statistics computed by executed code,
+  never by the model), heterogeneity and small-study-effects
+  diagnostics, GRADE certainty assessment, and publication-ready
+  forest/funnel plots and Summary of Findings tables. Designed to be
+  used by researchers with no prior coding experience. Activates when
+  a user requests a systematic review, a review update, a literature
+  search based on a research question, a meta-analysis (new, or of
+  already-extracted data), quantitative evidence synthesis, data
+  extraction from included studies (with or without meta-analysis),
+  evidence tables, forest or funnel plots,
+  heterogeneity or publication-bias assessment, or GRADE/Summary of
+  Findings work.
 ---
 
-# Systematic Review Coordinator — Optimised Skill (v5.0)
+# Systematic Review & Meta-Analysis Coordinator — Optimised Skill (v7.0)
 
 ---
 
@@ -34,15 +51,33 @@ This skill is designed to align with the following verified standards and guidel
 - **PRISMA-trAIce** — Holst D, et al. "Transparent Reporting of Artificial Intelligence in Comprehensive Evidence Synthesis: Development of the PRISMA-trAIce Checklist." *JMIR AI* 2025;4:e80247. 14-item checklist. Note: this is a foundational proposal that has not yet undergone Delphi validation or EQUATOR Network registration. Used here as emerging guidance only.
 - **RAISE (2025)** — Responsible AI for Systematic Evidence recommendations, jointly supported by Cochrane, Campbell Collaboration, JBI, and Collaboration for Environmental Evidence. Provides principles for responsible AI use in evidence synthesis.
 
+**Meta-analysis standards (added in v6; all individually verified):**
+
+- **Cochrane Handbook v6.5, synthesis chapters** — Chapter 5 (data collection, duplicate extraction), Chapter 6 (effect measures and computing estimates; §6.3 SEs from CIs/p-values; §6.5.2 medians and ranges), Chapter 9 (preparing for synthesis), Chapter 10 (meta-analysis: §10.4 Mantel–Haenszel/inverse-variance/Peto; §10.10 heterogeneity; §10.11 subgroups and meta-regression; §10.14 sensitivity analyses), Chapter 12 (synthesis using other methods), Chapter 13 (risk of bias due to missing results; funnel-plot asymmetry), Chapter 14 (Summary of Findings and GRADE), Chapter 15 (interpreting results), Chapter 23 (complex designs: cluster-randomised, crossover, multi-arm).
+- **SWiM** — Campbell M, McKenzie JE, Sowden A, et al. "Synthesis without meta-analysis (SWiM) in systematic reviews: reporting guideline." *BMJ* 2020;368:l6890.
+- **GRADE** — Guyatt GH, Oxman AD, Vist GE, et al. "GRADE: an emerging consensus on rating quality of evidence and strength of recommendations." *BMJ* 2008;336:924–6; GRADE Handbook and GRADEpro GDT at https://www.gradepro.org/.
+- **PRISMA 2020 synthesis items** — items 13a–13f (synthesis methods), 14 (reporting bias assessment methods), 15 (certainty assessment methods), 20–22 (results of syntheses, reporting biases, certainty of evidence). Same source as PRISMA 2020 above.
+- **metafor** — Viechtbauer W. "Conducting meta-analyses in R with the metafor package." *Journal of Statistical Software* 2010;36(3):1–48. CRAN version verified current at v6 authoring: **5.0-1** (April 2026).
+- **meta** — Balduzzi S, Rücker G, Schwarzer G. "How to perform a meta-analysis with R: a practical tutorial." *Evidence-Based Mental Health* 2019;22:153–160. CRAN version verified current at v6 authoring: **8.3-0** (2026).
+- **Hartung–Knapp–Sidik–Jonkman** — Hartung J, Knapp G. *Statistics in Medicine* 2001;20:1771–82 and 2001;20:3875–89; Sidik K, Jonkman JN. *Statistics in Medicine* 2002;21:3153–59; IntHout J, Ioannidis JPA, Borm GF. "The Hartung-Knapp-Sidik-Jonkman method for random effects meta-analysis is straightforward and considerably outperforms the standard DerSimonian-Laird method." *BMC Medical Research Methodology* 2014;14:25.
+- **τ² estimators** — Veroniki AA, Jackson D, Viechtbauer W, et al. "Methods to estimate the between-study variance and its uncertainty in meta-analysis." *Research Synthesis Methods* 2016;7:55–79.
+- **Prediction intervals** — Riley RD, Higgins JPT, Deeks JJ. "Interpretation of random effects meta-analyses." *BMJ* 2011;342:d549.
+- **Funnel-plot asymmetry** — Egger M, Davey Smith G, Schneider M, Minder C. *BMJ* 1997;315:629–34; Peters JL, Sutton AJ, Jones DR, Abrams KR, Rushton L. *JAMA* 2006;295:676–80 (Peters' test); Peters JL, et al. "Contour-enhanced meta-analysis funnel plots help distinguish publication bias from other causes of asymmetry." *Journal of Clinical Epidemiology* 2008;61:991–6; Sterne JAC, Sutton AJ, Ioannidis JPA, et al. "Recommendations for examining and interpreting funnel plot asymmetry in meta-analyses of randomised controlled trials." *BMJ* 2011;343:d4002 (the ≥10-studies rule); Duval S, Tweedie R. "Trim and fill: a simple funnel-plot-based method of testing and adjusting for publication bias in meta-analysis." *Biometrics* 2000;56:455–63 (sensitivity use only).
+- **Variance derivation from imperfect reporting** — Wan X, Wang W, Liu J, Tong T. *BMC Medical Research Methodology* 2014;14:135; Hozo SP, Djulbegovic B, Hozo I. *BMC Medical Research Methodology* 2005;5:13; Luo D, Wan X, Liu J, Tong T. *Statistical Methods in Medical Research* 2018;27:1785–805; Tierney JF, Stewart LA, Ghersi D, Burdett S, Sydes MR. "Practical methods for incorporating summary time-to-event data into meta-analysis." *Trials* 2007;8:16.
+
 **Note on AI-SR benchmarking literature:** Published studies on LLM performance in systematic review tasks (e.g., Khraisha et al. 2024 on GPT-4 screening; Wang et al. 2023 on Boolean query generation) inform the design of this skill's performance monitoring. However, specific performance claims are not made — actual performance depends on the review topic, model version, and prompt. The ground-truth validation system (Phase 5) measures performance empirically for each review rather than relying on literature estimates.
 
 **Note on v5 operational additions:** The capabilities added in v5 — Update-Review Mode, Screening at Scale (stable IDs, batching, checkpoint/resume), the Pilot → Calibrate → Scale validation protocol, the eligibility-rules registry, κ interpretation guidance (including % agreement and PABAK), risk-based audit, environment fallbacks, and the PRISMA update layout — are **internal design guidance** derived from direct operational experience running this skill on a live PROSPERO-track review update. They introduce **no new external citations**. Where they touch reporting or methodology, they are grounded in the standards already listed above: PRISMA 2020 (flow-diagram bookkeeping, including for updated reviews), PRISMA-S (search reporting, including date limits and re-run searches), the Cochrane Handbook v6.5 (independent duplicate screening, pilot testing of eligibility criteria and screening forms), and PRISMA-trAIce/RAISE (AI transparency). PABAK (prevalence-adjusted bias-adjusted kappa) is used here as a well-established descriptive agreement statistic; it is computed and reported, not cited as a new standard.
+
+**Note on v6 meta-analysis additions:** Phases 8b–8e extend the skill from study selection and appraisal into quantitative synthesis. The extension preserves and generalises the v5 architecture: dual, independent, human-adjudicated work (extraction mirrors dual screening); human-approval gates before anything irreversible (the Analysis Plan Approval gate mirrors the criteria lock); and hash-chained logging of every decision, script, and output. The former guardrail against "unsupervised meta-analytical mathematics" is not deleted but made precise: statistics are computed exclusively by executed, version-pinned statistical libraries through hashed, human-runnable scripts; the language model recommends, extracts (with verification), generates code, and describes — it never computes. Interpretation and the discussion remain out of scope, unchanged.
+
+**Note on v7 extraction additions:** v7 promotes study data extraction from a synthesis-only preliminary (the former Phase 8b) to a first-class phase for all reviews (Phase 7b, positioned before risk of bias so RoB assessment can draw on the same anchored text layers). It generalises three existing v5 mechanisms rather than inventing new ones: the eligibility-rules registry becomes an **extraction-conventions registry**; the Phase 5a pilot → calibrate → lock → scale loop becomes an **extraction calibration loop** gated on field-level error rates (κ is deliberately not used — extraction is not a two-rater categorical task); and per-record evidence quoting becomes mandatory **evidence anchoring** (verbatim quote + PDF hash + page + text-layer line range + structural reference), machine-verified by a shipped script. Its distinctive control is the **root-cause router**: every audited extraction disagreement is classified as a transcription error (→ calibration example), a missing convention (→ registry rule), a TDPL defect (→ logged guideline amendment), or an upstream misspecification (→ `UPSTREAM_SPECIFICATION_FLAG` to the researcher) — so the loop never silently patches downstream what belongs in the protocol.
 
 ---
 
 ## Boundaries and Guardrails
 
-- **DO NOT** synthesise scientific conclusions, perform unsupervised meta-analytical mathematics, or write the interpretive discussion.
+- **DO NOT** write the interpretive discussion or synthesise scientific conclusions — interpretation is the researcher's alone. Quantitative synthesis itself is in scope (Phases 8b–8e) under a strict division of labour: **the human decides; the AI recommends; the code computes.** The language model must NEVER compute, estimate, approximate, or "correct" any statistical quantity — no effect sizes, variances, weights, pooled estimates, τ², I², confidence intervals, p-values, or conversions from medians/IQRs/CIs/p-values. All numbers flow from executed, version-pinned statistical libraries (R `metafor`/`meta`, or the researcher's chosen Python equivalents) invoked through generated, hashed, human-runnable scripts. The AI's analytic role is confined to extraction assistance (anchored and verified at Gates 3b–3d), analysis-plan recommendation (approved at Gate 4c), script generation, and drafting factual descriptions of numerical outputs (verified at Gate 4e). "Unsupervised meta-analytical mathematics" therefore remains forbidden; supervision is enforced by Gates 4b–4e.
 - **DO NOT** use zero-shot prompting for abstract screening. All screening must use structured criterion-by-criterion evaluation with explicit evidence grounding.
 - **DO NOT** use the AI model to probabilistically deduplicate records. Deduplication must be deterministic.
 - **DO NOT** finalise any inclusion or exclusion decision without explicit human confirmation. The AI produces recommendations; the human decides.
@@ -55,6 +90,15 @@ This skill is designed to align with the following verified standards and guidel
 - **DO NOT** execute any Python script without first providing the researcher with clear, step-by-step setup and run instructions suitable for someone with no coding experience.
 - **DO NOT** instruct the researcher to modify their operating-system or browser trust store, or any shared certificate bundle, without first explaining what the change does and obtaining their explicit consent. Prefer non-invasive, script-scoped alternatives (see Phase 3).
 - **DO NOT** cite, reference, or rely on any guideline, framework, or publication that has not been independently verified as real and currently accessible.
+- **DO NOT** execute, or present results from, any statistical analysis before Gate 4c (Analysis Plan Approval) is passed. Every analytical choice — effect measure, model, τ² estimator and small-sample adjustment, pooling method, multi-arm/cluster/crossover/rare-event handling, conversions, subgroups, meta-regression covariates, sensitivity analyses, small-study-effects diagnostics — requires explicit, logged researcher approval first.
+- **DO NOT** run an analysis script without the researcher's logged execution-mode choice (Step 8d.3): the researcher runs it manually, or explicitly asks the skill to execute it. Never auto-execute.
+- **DO NOT** engage in data-driven analytic flexibility. Analyses are pre-specified in the protocol and fixed in the approved analysis plan; any change is a logged plan revision requiring re-approval, and analyses not pre-specified in the protocol are labelled post-hoc exploratory in every output.
+- **DO NOT** run funnel-plot asymmetry tests (Egger's, Peters') with fewer than 10 studies, and never present trim-and-fill as anything other than a sensitivity analysis.
+- **DO NOT** force a meta-analysis where the studies are too few or too heterogeneous for a pooled average to be meaningful; route the outcome to the SWiM narrative-synthesis path (Phase 8c) and say why.
+- **DO NOT** extract any study data before the researcher has confirmed the Target Data-Point List (Gate 3b), and do not begin the full extraction before the extraction calibration loop has passed and the guideline is locked (Gate 3c).
+- **DO NOT** record an extracted value without a complete evidence anchor (verbatim quote + source PDF hash + page + text-layer line range + structural reference). A value without an anchor is not a value; it is `NOT_LOCATED`.
+- **DO NOT** flatten extraction disagreements into prompt tweaks. Every audited disagreement is routed by root cause (transcription error → calibration example; missing convention → registry rule; TDPL defect → logged amendment; upstream misspecification → `UPSTREAM_SPECIFICATION_FLAG` presented to the researcher). Upstream defects are never silently patched downstream.
+- **DO NOT** apply the risk-based audit option to data extraction: extraction verification is 100% human, always.
 
 ---
 
@@ -72,7 +116,7 @@ AI_TRANSPARENCY:
     constant}
   model_provider: {provider name, e.g., Anthropic}
   inference_api_version: {API version used}
-  prompt_version: {skill version, e.g., v5.0}
+  prompt_version: {skill version, e.g., v7.0}
   temperature: 0
   seed: {researcher-set seed — logged for traceability; see
     reproducibility_basis below}
@@ -93,6 +137,11 @@ AI_TRANSPARENCY:
     - Risk of bias assessment assistance (all judgments confirmed by human)
     - PRISMA diagram generation (finalised by human)
     - Active learning calibration (prompt updated with human-approved correction examples between batches; model not fine-tuned)
+    - Data extraction assistance (TDPL researcher-confirmed at Gate 3b; every value quote-and-location anchored, machine-verified, and human-verified against the source; independent dual extraction; dataset locked at Gate 3d)
+    - Analysis-plan recommendation via the Analytical Approach Summary (every analytical choice approved by the human at Gate 4c)
+    - Analysis script generation (all statistics computed by executed, version-pinned statistical libraries — never by the model; scripts hashed)
+    - Drafting factual descriptions of numerical outputs (every number verified against script output at Gate 4e; no interpretation)
+    - GRADE certainty assessment assistance (all judgments confirmed by human)
 
   known_limitations:
     - AI may produce reasoning that appears plausible but misinterprets study content
@@ -100,6 +149,27 @@ AI_TRANSPARENCY:
     - temperature=0 minimises but does not eliminate output variability for agentic screening; outputs may also differ across model versions, providers, or sessions of a long screen (hence per-batch model logging)
     - Performance metrics are internal to this review and not externally benchmarked
     - AI-assisted screening does not replace independent human review; it augments it
+    - AI-assisted data extraction may mis-transcribe, mis-locate, or confabulate values; the extraction calibration pilots, machine anchor verification, dual independent extraction, and 100% source verification (Gates 3b–3d) mitigate this
+
+  extraction:
+    tdpl_version_hashes: {every Extraction Guideline version, hashed}
+    conventions_registry_version_hashes: {every registry version, hashed}
+    extraction_pilot_metrics: {per pilot — value-error rate, NOT_LOCATED
+      rate, anchor-verification failure rate}
+    extractor_b: {second human | second blinded AI pass (limitation)}
+    extraction_dataset_hash: {SHA-256 locked at Gate 3d}
+    note: Every extracted value carries a verbatim quote and a resolvable
+      document location (PDF hash, page, text-layer line range), verified
+      mechanically and by the researcher.
+
+  analysis:
+    synthesis_mode: {meta_analysis | swim_narrative | none — per outcome where mixed}
+    analysis_language: {R | Python — the researcher's logged choice}
+    statistical_library_versions: {versions actually used, from sessionInfo() / pip freeze}
+    analysis_script_hashes: {script filename → SHA-256, per version}
+    analysis_execution_modes: {script → researcher_manual | skill_executed}
+    note: Every statistical quantity in this review was computed by the
+      executed, version-pinned scripts above — never by the language model.
 
   disclosure:
     - This review used AI-assisted screening with human audit (100% by default; if the documented risk-based audit variant was used, state it here as a limitation) and independent dual screening
@@ -122,7 +192,7 @@ Before any work begins, the following parameters must be set and logged. Present
     "inference_api_version": "string — API version",
     "temperature": 0,
     "seed": "integer — SET BY THE RESEARCHER (logged for traceability; see below)",
-    "prompt_version": "v5.0",
+    "prompt_version": "v7.0",
     "max_tokens_screening": "integer — max output tokens for screening calls",
     "review_mode": "\"new\" | \"update\" — SET IN PHASE 0 (see Mode Selector)",
     "prior_corpus_paths": "array of strings — update mode only: paths to the prior review's screened corpus exports (RIS/BibTeX/CSV; EndNote libraries must be exported to RIS first)",
@@ -134,7 +204,15 @@ Before any work begins, the following parameters must be set and logged. Present
     "principal_investigator": "string",
     "date_initiated": "ISO-8601",
     "working_directory": "string — SET BY THE RESEARCHER (see below)",
-    "full_text_directory": "string — SET BY THE RESEARCHER (see below)"
+    "full_text_directory": "string — SET BY THE RESEARCHER (see below)",
+    "synthesis_mode": "\"meta_analysis\" | \"swim_narrative\" | \"none\" — intent recorded at kickoff (item 12); bindingly set per outcome at Phase 8c",
+    "analysis_language": "\"R\" | \"Python\" — SET BY THE RESEARCHER at Step 8d.1 (asked explicitly; R recommended)",
+    "analysis_library_versions": "object — statistical library → version actually installed/used (from sessionInfo() / pip freeze), appended at Phase 8d",
+    "analysis_script_hashes": "object — script filename → SHA-256, appended per script version",
+    "analysis_execution_mode": "object — script → \"researcher_manual\" | \"skill_executed\" (logged per script at Step 8d.3)",
+    "extraction_pilot_size": "integer — default 4 studies per extraction calibration pilot (Phase 7b)",
+    "extraction_error_threshold": "float — default 0.05: maximum tolerated numeric-field error rate on a fresh pilot before the extraction guideline may lock (Gate 3c)",
+    "extractor_b": "\"second_human\" (preferred) | \"second_blinded_ai_pass\" (documented limitation) — SET AT KICKOFF (item 13)"
   }
 }
 ```
@@ -153,6 +231,7 @@ What this skill **can** honestly promise, and how:
 2. **Complete decision logging.** For every record: the input metadata (hashed), the AI's structured rationale with evidence quotes, the recommendation, the confidence level, and the human's audit decision are logged with timestamps in the hash-chained audit log.
 3. **Deterministic sampling.** Pilot samples, ground-truth samples, and batch ordering are drawn by deterministic procedures (stable-ID order or seeded sampling), so *which records were looked at, in what order* is exactly reproducible.
 4. **Per-batch model identity.** The model id + version actually used is logged for every batch. Long screens span multiple sessions; the model can change between sessions, and this must be captured rather than assumed constant.
+5. **Analysis determinism (Phases 8b–8e).** Statistical results are deterministic given the same extraction dataset, analysis plan, seed, and library versions — and all four are locked: the dataset hash (Gate 3d), the plan hash (Gate 4c), the script SHA-256, and the recorded `sessionInfo()`/`pip freeze`. Re-running the script reproduces the numbers exactly. This is a *stronger* guarantee than is possible for LLM screening, and reporting language may say so — for the computed statistics only, never for the AI-assisted steps.
 
 What this skill must **not** claim:
 
@@ -165,7 +244,7 @@ All language elsewhere in this skill, in the AI Transparency Block, and in any g
 
 ## Structural Overview
 
-This skill operates in **sequential phases** with **7 mandatory human-approval gates**. No phase may begin until the preceding phase is complete and, where applicable, human approval is logged. Phase 0 begins with a **Mode Selector** (NEW review vs UPDATE of an existing review); update-mode-only steps are marked ◆ below and are skipped for new reviews.
+This skill operates in **sequential phases** with **13 mandatory human-approval gates**. No phase may begin until the preceding phase is complete and, where applicable, human approval is logged. Phase 0 begins with a **Mode Selector** (NEW review vs UPDATE of an existing review); update-mode-only steps are marked ◆ below and are skipped for new reviews. Synthesis phases (8c–8e) are marked ♦: they run when the researcher's synthesis intent (kickoff item 12, bindingly decided per outcome at Phase 8c) is meta-analysis, with SWiM-routed outcomes reported narratively; when the intent is "none" they are skipped. Phase 7b (Study Data Extraction) is NOT synthesis-gated: it runs for every review that extracts study-level data — opting out is an explicit, logged decision.
 
 ```
 Phase 0:  Mode Selector (NEW | UPDATE), Kickoff Decision Checklist,
@@ -203,8 +282,30 @@ Phase 6:  Full-Text Retrieval (researcher-set directory)
           ↓
 Phase 7:  Full-Text Screening + Performance Monitoring + Dual Screening
           ↓ ── GATE 3: 100% human audit + conflict resolution ──
-Phase 8:  Risk of Bias Assessment (researcher-provided framework)
+Phase 7b: Study Data Extraction — TDPL, conventions registry,
+          extraction calibration loop, dual extraction,
+          quote-plus-location anchors (no arithmetic at extraction)
+          ↓ ── GATE 3b: Researcher confirms the Target Data-Point
+               List (Extraction Guideline v1 locked) ──
+          ↓ ── GATE 3c: Extraction pilots pass error gate +
+               convergence; guideline LOCKED ──
+          ↓ ── GATE 3d: Every value verified against its anchor;
+               extraction dataset locked (hashed) ──
+Phase 8:  Risk of Bias Assessment (researcher-provided framework;
+          may draw on Phase 7b anchored text layers)
           ↓ ── GATE 4: 100% human audit of all RoB judgments ──
+Phase 8c: ♦ Synthesis Decision & Analysis Plan (meta-analysis vs SWiM
+          per outcome; Analytical Approach Summary)
+          ↓ ── GATE 4c: Analysis Plan Approval — blocks ALL
+               statistical execution ──
+Phase 8d: ♦ Analysis Script Generation & Execution (Python-or-R
+          question; pinned libraries; beginner-annotated script;
+          run-yourself-or-skill-executes question)
+          ↓ ── GATE 4d: Execution mode logged; outputs verified
+               and hashed ──
+Phase 8e: ♦ Results Verification, GRADE & Reporting Outputs
+          ↓ ── GATE 4e: Every reported number verified against
+               script output; SoF and methods paragraph approved ──
 Phase 9:  PRISMA Flow Diagram Generation (new-review or update layout)
           ↓ ── GATE 5: Researcher finalises diagram ──
 Phase 10: Export & Reporting (including AI Transparency Statement)
@@ -226,7 +327,7 @@ Immediately create `audit_log.json` using the schema below. Every action, decisi
 
 ```json
 {
-  "schema_version": "5.0",
+  "schema_version": "7.0",
   "review_metadata": {
     "review_title": "",
     "protocol_id": "",
@@ -251,7 +352,7 @@ Immediately create `audit_log.json` using the schema below. Every action, decisi
       "inference_api_version": "",
       "temperature": 0,
       "seed": null,
-      "prompt_version": "v5.0"
+      "prompt_version": "v7.0"
     },
     "ai_transparency": {}
   },
@@ -271,7 +372,7 @@ Every log entry must conform to:
 {
   "entry_id": "UUID-v4",
   "created_at": "ISO-8601 — date and time this entry was created",
-  "phase": "0–10 (including 4b, 5a, 5b)",
+  "phase": "0–10 (including 4b, 5a, 5b, 7b, 8c, 8d, 8e)",
   "action": "descriptive string",
   "actor": "AI | HUMAN | SYSTEM",
   "record_id": "string | null — the STABLE record ID (see Phase 4) for any entry concerning a specific record; null for phase-level entries",
@@ -308,6 +409,14 @@ Every log entry must conform to:
 - `record_id` on every record-level entry uses the **stable record ID** from Phase 4 (hash of normalised DOI, or normalised title if no DOI) — never a positional index.
 - `batch_number` and `model_id_used` on screening entries: every batch logs the model id + version actually in use.
 - The audit log is complemented by per-batch **checkpoint files** on disk (see Screening at Scale) so screening progress survives interruption; the audit log remains the single source of truth for *decisions*, while checkpoint files are the operational resume mechanism.
+
+**Key changes in v6.0 (meta-analysis extension):**
+- New actions for the synthesis phases (8c–8e), all using the existing entry format (`phase`, `action`, `created_at`, chained hashing): `synthesis_mode_decision` (per outcome), `analytical_approach_summary_presented` (full document text + hash), `analysis_plan_decision` (one entry per analytical choice: recommendation, alternatives, rationale, researcher approval/amendment/rejection), `analysis_plan_approved` (plan JSON hash), `analysis_plan_revision` (reason + re-approval), `analysis_language_preference`, `analysis_script_generated` (script SHA-256 + pinned library versions), `analysis_execution_choice`, `analysis_executed` (command + output-log hash + per-file output hashes), `analysis_outputs_received` (manual-run path: per-file hashes + verification result), `analysis_output_verification`, `grade_judgment`, `results_verification`. (Extraction actions are defined in the v7.0 block below.)
+- The full analytic decision trail must be reconstructable from `audit_log.json` alone, and is surfaced in `performance_monitoring_report.md` and the AI Transparency Statement.
+
+**Key changes in v7.0 (extraction phase):**
+- Extraction actions renumbered to Phase 7b and extended: `tdpl_proposed` (full list + derivations), `tdpl_decision` (per data point: confirm/modify/add/remove, including explicit do-not-extract decisions), `extraction_guideline_locked` (TDPL hash, per version), `extraction_conventions_rule` (same flow as eligibility rules), `extraction_pilot` (composition, blind-audit metrics: value-error rate, NOT_LOCATED rate, anchor-verification failure rate, discrepancy table with direction), `active_learning_calibration_extraction`, `root_cause_classification` (one per audited disagreement: transcription | convention | tdpl_defect | upstream), `UPSTREAM_SPECIFICATION_FLAG` (question presented + researcher's decision), `tdpl_amendment` (post-lock deviation + re-extraction trade-off decision), `data_extraction` (per value, with full anchor), `anchor_verification` (script run + failures), `extraction_verification`, `extraction_discrepancy_resolution` (with root cause), `extraction_dataset_locked` (dataset hash).
+- Gate 4b is retired; its dataset-lock role moves to Gate 3d. Downstream phases (8c–8e) reference the Gate 3d hash.
 
 **Every entry records the date and time of creation.** The `created_at` field uses full ISO-8601 format including timezone (e.g., `2026-04-13T14:32:07+01:00`). Human review actions additionally record `reviewed_at`. This applies to all entries across all phases.
 
@@ -351,6 +460,8 @@ The following decisions are elicited **deliberately at kickoff**, not discovered
 9. **Reviewer B identity** for independent dual screening: a second human reviewer (preferred, Cochrane-compliant) or a second blinded AI pass (documented as a limitation). Decide now so Phase 5b is not blocked.
 10. **Audit depth** at large N: 100% human audit (default, gold standard) or risk-based audit (opt-in, documented as limitation — see Gate 2). Give the researcher the upfront throughput estimate context from Screening at Scale before they choose.
 11. **Full-screen pacing:** stage-and-audit per batch (screen a batch → human audits it → next batch) vs one consolidated pass (screen everything → single audit). Set expectations that a genuine per-record screen of thousands of records **spans multiple sessions** (see Throughput Honesty, Phase 5).
+12. **Synthesis intent.** Will this review attempt quantitative synthesis (meta-analysis), a structured narrative synthesis (SWiM), or selection and appraisal only ("none")? Record the intent; the binding per-outcome decision is made at Phase 8c with the extracted data in view. Note now that (a) the synthesis plan is pre-specified in the protocol (Step 0.3) precisely so later analytical choices are not data-driven, (b) study data extraction (Phase 7b) runs regardless of synthesis intent unless explicitly opted out, and the Target Data-Point List will be presented for confirmation at Gate 3b, and (c) the analysis-language question (Python vs R) will be asked at Step 8d.1 — it may be answered now or deferred to that step.
+13. **Extractor B identity** for independent dual extraction (Phase 7b): a second human extractor (preferred, Cochrane Handbook Chapter 5 standard) or a second blinded AI pass (documented as a limitation), mirroring the Reviewer B decision in item 9. Decide now so Phase 7b is not blocked.
 
 Log the completed checklist as a single audit entry with `created_at`.
 
@@ -372,11 +483,12 @@ Log the completed checklist as a single audit entry with `created_at`.
    - Information sources (databases, grey literature sources, citation chasing strategy).
    - Search strategy (populated after Phase 2).
    - Selection process (description of AI-assisted screening with 100% human audit and independent dual screening).
-   - Data collection process (if applicable).
+   - Data collection process (researcher-confirmed Target Data-Point List; piloted, calibrated, independent dual extraction with quote-plus-location evidence anchoring and 100% source verification — see Phase 7b).
    - Risk of bias assessment method (placeholder until researcher provides framework in Phase 8).
    - AI involvement disclosure (reference the AI Transparency Block).
-   - Synthesis plan (out of scope for this skill — note this explicitly).
-   - Publication bias: note that publication bias assessment (e.g., funnel plots, Egger's test) is the researcher's responsibility during synthesis, and is outside the scope of this skill.
+   - Synthesis plan, pre-specified per PRISMA 2020 items 13a–13f: for each outcome, the planned effect measure; eligibility for each synthesis; planned tabulation/graphing; the synthesis method (meta-analysis, or SWiM narrative synthesis where pooling is expected to be inappropriate); the planned model, τ² estimator, and small-sample adjustment; planned handling of multi-arm, cluster, and crossover designs and of imperfect reporting (named conversion methods); pre-specified subgroup analyses and meta-regression covariates; and pre-specified sensitivity analyses. These pre-specifications are the reference against which the Phase 8c analysis plan is checked; departures are logged deviations, and analyses not pre-specified here are labelled post-hoc exploratory in every output. If the researcher's synthesis intent is "none" (kickoff item 12), record that explicitly — Phases 8b–8e are then skipped.
+   - Reporting bias / small-study effects plan (PRISMA items 14 and 21): planned methods — contour-enhanced funnel plots; Egger's or Peters' asymmetry test only where a synthesis includes at least 10 studies; trim-and-fill as a sensitivity analysis only. Executed in Phase 8e by the analysis script, never by unsupervised computation.
+   - Certainty assessment plan (PRISMA item 15): the outcomes to be GRADE-assessed and the planned Summary of Findings structure (Phase 8e).
 5. Present the protocol to the researcher for review and approval.
 6. Prompt the researcher to register on PROSPERO (https://www.crd.york.ac.uk/prospero/) or equivalent and record the registration ID in the audit log.
 7. Lock the protocol. Any subsequent deviation must be logged with explicit justification and researcher approval.
@@ -425,6 +537,19 @@ Log the completed checklist as a single audit entry with `created_at`.
 │   ├── full_text/
 │   └── dual_screening/
 ├── risk_of_bias/
+├── extraction/          ← Phase 7b
+│   ├── extraction_guideline.json            ← TDPL, all versions, hashed (Gates 3b/3c)
+│   ├── extraction_conventions_registry.json
+│   ├── pilots/           ← per-pilot samples, blind audits, error reports
+│   ├── text_layers/      ← persisted per-document text layers (see Phase 6)
+│   ├── extraction_dataset.csv               ← locked at Gate 3d
+│   ├── extraction_evidence_anchors.csv
+│   └── extraction_discrepancy_log.csv       ← with root-cause classes
+├── analysis/            ← Phases 8c–8e: Analytical Approach Summary, analysis_plan.json, scripts, results, plots
+│   ├── scripts/
+│   ├── results/
+│   └── plots/
+├── grade/               ← Phase 8e: GRADE worksheet, Summary of Findings
 ├── prisma/
 └── exports/
 ```
@@ -1809,7 +1934,8 @@ Log the confirmed directory path.
    - Use `PyMuPDF` (fitz) for text extraction.
    - If text extraction yields <100 characters per page (scanned/image PDF), flag for OCR using `pytesseract`.
    - Log extraction method per document.
-6. Log: records retrieved (auto), records requiring manual retrieval, extraction method per document, all with `created_at` timestamps.
+   - **Persist the extracted text layer per document** to `extraction/text_layers/{record_id}.txt`, with the source PDF's SHA-256 and the extraction method logged alongside. Phase 7b's evidence anchors reference page and line indices **in this persisted text layer**, so it is the stable substrate that makes quote-plus-location anchoring resolvable and machine-verifiable; Phase 8 RoB evidence quotes may reference it too.
+6. Log: records retrieved (auto), records requiring manual retrieval, extraction method per document, per-document PDF hash and text-layer path, all with `created_at` timestamps.
 
 ---
 
@@ -1830,7 +1956,127 @@ Log the confirmed directory path.
 
 **Additional requirement:** For each study excluded at full-text stage, the researcher must confirm the exclusion reason. These populate the "Excluded studies with reasons" table required by PRISMA Item 17.
 
-**Do not proceed to Phase 8 until Gate 3 is complete and logged.**
+**Do not proceed to Phase 7b until Gate 3 is complete and logged.**
+
+---
+
+## Phase 7b: Study Data Extraction (TDPL, Evidence Anchoring & Extraction Calibration)
+
+*Runs for every review that will extract study-level data — which is nearly all of them, whether the destination is meta-analysis (Phases 8c–8e), SWiM narrative synthesis, or an evidence table. If the researcher genuinely wants selection-and-appraisal only, opting out of Phase 7b is an explicit, logged decision, not a silent skip.*
+
+### Rationale
+
+Extraction errors propagate silently into every downstream table and statistic. Cochrane Handbook v6.5 Chapter 5 requires data collection with **piloted** forms and recommends independent duplicate extraction of outcome data. Phase 7b implements both with the skill's existing machinery, generalised: the registry pattern from Phase 5a becomes an **extraction-conventions registry**; the pilot → calibrate → lock → scale loop from Gate 2a becomes an **extraction calibration loop** (with field-level error metrics instead of κ, which is the wrong instrument for a non-categorical task); and every value is **evidence-anchored** — quote plus resolvable document location — and machine-verified. Extraction precedes Phase 8 deliberately: risk-of-bias assessment may then draw on the same anchored text layers.
+
+### Step 7b.1: Target Data-Point List (TDPL) — proposed by the skill, owned by the researcher
+
+Before any paper is touched, generate a candidate list of data points and present it for confirmation. **Every proposed item must be traceable to something the researcher already said** — the PICO JSON, the protocol's stated outcomes and synthesis plan, or the eligibility-rules registry — so the researcher reviews a derivation, not a generic template. Schema per data point:
+
+```json
+{
+  "dp_id": "DP-014",
+  "category": "outcome_result | outcome_definition | population | intervention | comparator | study_characteristics | context | funding_coi",
+  "name": "Depression severity at post-treatment",
+  "definition": "Score on the primary depression instrument at the first post-intervention assessment, as reported",
+  "derived_from": "PICO.outcome node; protocol §Outcomes item 1",
+  "expected_format": "instrument name + numeric value(s) + N, verbatim as reported",
+  "required": true,
+  "known_ambiguities": ["multiple instruments possible", "endpoint vs change score"]
+}
+```
+
+The `known_ambiguities` field pre-declares expected trouble, seeding the conventions registry (Step 7b.3) before extraction starts rather than discovering everything through error. The TDPL must cover, at minimum, the study-level fields any synthesis will need: study identifiers, design, country, setting, funding and conflicts of interest; arm definitions with N randomised and N analysed per arm; outcome definitions, instruments, and time points; effect data **in the form each study reports it** (dichotomous: events/total per arm; continuous: mean/SD/N or whatever is actually reported — mean+SE, mean+CI, median+IQR/range, change scores, p-value only; time-to-event: HR with CI, log-HR and SE, or the inputs for indirect estimation per Tierney et al. (2007); rates: events and person-time); and **unit-of-analysis flags** (cluster-randomised with ICC availability; crossover with paired/first-period availability; multi-arm with shared comparator; multiple eligible time points or measures) per Handbook Chapters 6 (§6.2) and 23.
+
+### ── GATE 3b: TDPL Confirmation ──
+
+**MANDATORY.** The researcher confirms, modifies, adds, or removes each data point, with the Phase 2 explicit-"N/A" discipline: deciding *not* to extract something forecloses later synthesis options and is therefore a logged protocol decision, not an omission. The confirmed TDPL is hashed and locked as **Extraction Guideline v1** (`extraction/extraction_guideline.json`). **No extraction — pilot or otherwise — occurs before this gate.**
+
+### Step 7b.2: Evidence Anchoring (a value without an anchor is not a value)
+
+Every extracted value carries a three-part anchor: the **verbatim quote**, a **resolvable location**, and a **human-navigable structural reference**. Schema:
+
+```json
+{
+  "record_id": "R-a3f19c02d4e88b71",
+  "dp_id": "DP-014",
+  "value_as_reported": "BDI-II 14.2 (SD 6.1), n=41",
+  "quote": "mean BDI-II scores at week 12 were 14.2 (SD 6.1) in the CBT group (n = 41)",
+  "anchor": {
+    "source_pdf_hash": "sha256:…",
+    "text_layer_method": "PyMuPDF | pytesseract-OCR",
+    "page": 7,
+    "line_range": [23, 24],
+    "structural_ref": "Results, Table 2, row 3"
+  },
+  "status": "LOCATED | NOT_LOCATED | QUERY",
+  "conversion_needed": null,
+  "convention_version": "sha256 of the conventions-registry version in force",
+  "extraction_guideline_version": "sha256 of the TDPL version in force"
+}
+```
+
+Rules:
+
+1. **"Line" must mean something stable.** PDFs have no native lines, so anchors point into the **persisted text layer** Phase 6 produces per document (see the Phase 6 persistence requirement): line indices are deterministic given the logged PDF hash and extraction method, both recorded in the anchor.
+2. **Anchors are machine-verified.** Provide `anchor_verification.py` (with the standard beginner run instructions): it re-opens each persisted text layer and confirms every quote occurs at its stated location. Anchor-verification failures are a first-class error metric — a plausible value with a fabricated anchor is the extraction analogue of a missed include, the dangerous direction.
+3. **No arithmetic at extraction.** Values are recorded **verbatim as reported**. Where reporting is imperfect (median+IQR instead of mean+SD; a CI or p-value instead of an SE; change scores without SDs), the AI does not convert or derive anything: it records the reported values and sets `conversion_needed`, naming the accepted method it recommends the analysis script apply (Handbook §6.3/§6.5.2; Wan 2014; Hozo 2005; Luo 2018; Tierney 2007). The conversion is an analytical choice: approved at Gate 4c, performed only by the executed analysis script.
+4. Values with `status: NOT_LOCATED` or `QUERY` are never silently resolved; they are queued first in the human worksheets.
+5. Where a table and the prose disagree, extract **both**, flag `QUERY` — never silently prefer one (this is also a standing registry convention, `table_vs_text_precedence`).
+
+### Step 7b.3: The Extraction-Conventions Registry
+
+`extraction/extraction_conventions_registry.json` holds the operational rules the TDPL alone cannot express — exactly as the eligibility-rules registry holds what raw PICO cannot. Same schema, same researcher-approval flow, same hashing into the prompt (as the `{EXTRACTION_CONVENTIONS_BLOCK}`), new categories: `time_point_selection`, `analysis_population` (ITT vs per-protocol), `endpoint_vs_change`, `instrument_priority`, `arm_mapping`, `denominator_rule`, `table_vs_text_precedence`, `rounding_and_units`, `other`. Every extracted value logs the `convention_version` it was made under.
+
+### Step 7b.4: The Extraction Calibration Loop (nested learning loop)
+
+```
+Pilot: extract 3–5 studies (default extraction_pilot_size = 4; stratified
+       by study design and reporting style, seeded)
+   → BLIND field-level human audit: the researcher extracts the same
+     fields WITHOUT seeing the AI's values; then compare
+   → metrics: numeric exact-match rate; NOT_LOCATED rate;
+     anchor-verification failure rate; discrepancy table by dp category
+     AND by direction (mislocation/confabulation > omission > format drift)
+   → gate: value-error rate at or below the researcher-set threshold
+     (default ≤ 5% of numeric fields) AND zero unresolved
+     anchor-verification failures, on a FRESH pilot?
+      NO  → classify every disagreement by ROOT CAUSE (Step 7b.5)
+            → researcher approves fixes → new guideline/registry hash
+            → fresh pilot on unextracted studies → repeat
+      YES → convergence pilot (reporting-style-hard sample — e.g.,
+            figure-only outcomes, crossover, multi-arm — passing with
+            NO new conventions needed)
+            → LOCK the Extraction Guideline → GATE 3c → full extraction
+```
+
+Rules mirroring Phase 5a: pilots draw fresh studies only; never re-audit the pilot that generated the fixes and call it validation; the blind audit is expensive precisely because the human must extract independently rather than check — checking a shown value anchors the checker to it, and three to five studies of genuinely blind duplication is the minimum price of *knowing* the error rate rather than assuming it. Pilot extractions verified by the human are final and are not re-extracted. **κ is not used here**: field-level extraction is not a two-rater categorical task; the loop gates on per-field error rates with direction.
+
+### Step 7b.5: Root-Cause Classification (where the loop's intelligence lives)
+
+Every audited disagreement — in pilots and at scale — is routed to exactly one of four escalating destinations. Without this routing, every discovery gets flattened into a prompt tweak and the skill "learns" its way around defects that belong in the protocol:
+
+1. **Transcription/location error** → calibration example, in the existing Phase 5 Active Learning format (`action: "active_learning_calibration_extraction"`; cap 5, staleness-retired, researcher-approved).
+2. **Missing or ambiguous convention** → new extraction-conventions registry rule, researcher-approved, new registry hash.
+3. **TDPL defect** — a data point missing, wrongly defined, or unextractable as specified → **TDPL amendment**. Post-lock (after Gate 3c) this is a logged deviation; present the trade-off explicitly — re-extract already-completed studies under the amended guideline, or document the inconsistency — and log the researcher's decision.
+4. **Upstream misspecification** — the disagreement reveals the outcome concept itself was wrong, or casts doubt on an eligibility decision or the search concept. **Never silently patch this downstream.** Raise an `UPSTREAM_SPECIFICATION_FLAG`: a logged question to the researcher about whether the protocol, eligibility criteria, or (for updates) the search concept needs amendment, handled through the existing deviation mechanism — with the standing rule that screening-stage amendments never retroactively alter search breadth.
+
+### ── GATE 3c: Extraction Guideline Locked ──
+
+**MANDATORY.** Present every pilot's composition and metrics (error rates by category and direction, NOT_LOCATED and anchor-failure rates, discrepancy tables), the full extraction-conventions registry, the active extraction calibration examples, and the final locked TDPL hash. The researcher confirms the lock. Any later change to the TDPL or a convention is a logged deviation (root-cause route 3). **Do not begin full extraction until Gate 3c is passed.**
+
+### Step 7b.6: Full Extraction at Scale
+
+1. Extract study-by-study under the locked guideline at `temperature=0`, with the standard hashing and `model_id_used` logging, writing `extraction/extraction_dataset.csv` (one row per study × arm × outcome × time point) and `extraction/extraction_evidence_anchors.csv`, keyed on stable record IDs.
+2. **100% human verification of every value against its anchor.** N here is tens, not thousands — the risk-based audit option has **no place** in this phase. Worksheets are ordered by risk: `NOT_LOCATED` and `QUERY` first, then anchor-verification failures, then clean fields.
+3. **Independent second extraction (Extractor B)** of outcome data, mirroring Phase 5b: a second human extractor blind to Extractor A's values (preferred; Handbook Chapter 5 standard) or a second blinded AI pass with a different prompt variant and, where available, a different model version (documented as a limitation). Identity decided at kickoff (checklist item 13). Field-level discrepancies go to adjudication; every resolution and reason is logged in `extraction/extraction_discrepancy_log.csv` with its root-cause class.
+4. **Continued calibration** on the per-study cadence (as Phase 8 RoB calibration), through the Step 7b.5 router.
+5. Run `anchor_verification.py` over the complete dataset; the report is an export artefact.
+
+### ── GATE 3d: Extraction Complete — Dataset Locked ──
+
+**MANDATORY.** The researcher confirms: every value verified against its anchor; all discrepancies adjudicated with logged root causes; all `NOT_LOCATED`, `QUERY`, and `conversion_needed` flags reviewed (conversions remain pending Gate 4c approval); all unit-of-analysis flags recorded; anchor verification passing. On confirmation, **lock the extraction dataset**: log its SHA-256 hash. Any later change to the dataset is a logged deviation that invalidates downstream results until the analysis is re-run and re-verified.
+
+**Do not proceed to Phase 8 until Gate 3d is complete and logged (or the logged opt-out of Phase 7b is confirmed).**
 
 ---
 
@@ -1878,7 +2124,7 @@ Log the confirmed directory path.
 
 ### Assessment Execution
 
-For each included study (after Gate 3), apply the parsed RoB framework using structured prompting at `temperature=0`. Hash all responses and log `prompt_version_hash` and `model_id_used` per assessment (the Reproducibility Statement applies here identically).
+For each included study (after Gate 3d, or Gate 3 where Phase 7b was opted out), apply the parsed RoB framework — evidence quotes may cite the persisted Phase 6 text layers, giving RoB judgments the same resolvable anchoring as extraction using structured prompting at `temperature=0`. Hash all responses and log `prompt_version_hash` and `model_id_used` per assessment (the Reproducibility Statement applies here identically).
 
 ```
 ROLE: You are assisting with risk of bias assessment. You produce
@@ -1960,7 +2206,119 @@ EXAMPLE 1:
 2. The researcher must confirm or override the overall RoB judgment.
 3. Log every decision with `created_at` timestamp.
 
-**Do not proceed to Phase 9 until Gate 4 is complete and logged.**
+**Do not proceed until Gate 4 is complete and logged. If the logged synthesis intent is meta-analysis or SWiM, proceed to Phase 8c; if it is "none" and the researcher confirms it, Phases 8c–8e are skipped: proceed to Phase 9.**
+
+---
+
+## Phase 8c: Synthesis Decision & Analysis Plan ♦
+
+### Step 8c.0: Meta-Analysis Appropriateness Check (per outcome)
+
+Before any plan is drafted, assess for each pre-specified outcome whether meta-analysis is appropriate at all (Handbook Chapters 9–10):
+
+- At least two studies contribute comparable data (same construct, compatible effect measure)?
+- Clinical and methodological diversity reviewed with the researcher: are the populations, interventions, and outcome definitions similar enough that a pooled average is meaningful?
+- Reported statistics sufficient (directly or via approved conversions, per the Phase 7b `conversion_needed` flags) to compute an effect size and variance for each study, from the Gate 3d-locked extraction dataset?
+
+**If meta-analysis is inappropriate for an outcome, do not force it.** Route that outcome to a structured narrative synthesis reported per the SWiM guideline (Campbell et al., BMJ 2020): documented grouping of studies, standardised synthesis metric where possible (e.g., direction of effect), structured tabulation, vote-counting only by direction of effect with its limitations stated, and transparent reporting of why meta-analysis was not performed. Log the routing decision per outcome (`synthesis_mode` may therefore be mixed across outcomes; record it per outcome).
+
+### Step 8c.1: The Analytical Decision Menu
+
+For every outcome routed to meta-analysis, the following decisions must each be made explicitly. The AI recommends; the researcher decides at Gate 4c; the pre-specifications in the protocol (Phase 0) are the reference — any departure is presented as such and logged as a deviation:
+
+1. **Effect measure.** Dichotomous: RR, OR, or RD (Handbook §6.4, §10.4.3 — RR/OR generally preferred for consistency; RD for absolute effects). Continuous: MD (same instrument) vs SMD/Hedges' g (different instruments; small-sample-corrected g preferred). Time-to-event: HR. Rates: rate ratio.
+2. **Model.** Random-effects (default where any clinical/methodological heterogeneity is plausible) vs common-effect/fixed-effect (defensible only where studies estimate one common effect), per Handbook §10.10.4 — with the plain-language explanation that the random-effects estimate is an average of a distribution of effects, not "the" effect.
+3. **τ² estimator and small-sample adjustment.** REML as the default τ² estimator (per the comparative evidence in Veroniki et al., 2016), with the **Hartung–Knapp–Sidik–Jonkman (HKSJ)** confidence-interval adjustment recommended by default for random-effects models, and flagged as especially important with few studies (IntHout et al., 2014). State the consequence: HKSJ typically widens CIs; omitting it with few studies overstates precision.
+4. **Pooling/weighting method.** Inverse-variance (default for continuous, TTE, and generic effects); **Mantel–Haenszel** as the default for dichotomous outcomes, particularly with sparse data (Handbook §10.4.2); **Peto OR** only in its validity zone — rare events (roughly <1% event rates), balanced arms, small expected effects (Handbook §10.4.4.2).
+5. **Rare-event handling.** Whether zero-cell studies contribute; continuity-correction policy (avoid ad-hoc corrections where MH or Peto methods make them unnecessary); sensitivity analysis on the choice.
+6. **Multi-arm studies.** How shared comparator groups are handled to avoid double-counting (splitting the shared group, combining arms, or multivariate modelling), per Handbook Chapter 23 — one approach chosen and applied consistently.
+7. **Cluster and crossover designs.** Cluster trials: use appropriately adjusted estimates or apply a design-effect correction with a stated ICC source; crossover: use paired estimates or first-period data (Handbook Chapter 23). Every adjustment computed by the script, never by the model.
+8. **Multiple time points / multiple measures.** Which pre-specified time point and instrument enter the primary analysis; the rule for the rest.
+9. **Conversions.** Approve each `conversion_needed` flag from Phase 7b, naming the formula applied (Handbook §6.3; Wan 2014; Hozo 2005; Luo 2018; Tierney 2007) — each conversion is also a candidate sensitivity analysis.
+10. **Subgroup analyses.** **Pre-specified subgroups only** enter the confirmatory set; anything else is labelled post-hoc exploratory in every output (Handbook §10.11.2 cautions on observational, low-power, multiplicity-prone subgroup findings).
+11. **Meta-regression.** Only when pre-specified and only with adequate data — as a working convention, **not fewer than ten studies per covariate examined** (Handbook §10.11.5.1).
+12. **Sensitivity analyses.** At minimum offer: leave-one-out; restriction to low-risk-of-bias studies (using Gate 4 judgments); common-effect vs random-effects; with/without each conversion-dependent study (Handbook §10.14).
+13. **Small-study effects / reporting bias.** Contour-enhanced funnel plots (Peters et al., 2008); a regression-based asymmetry test — Egger's (continuous) or Peters' (dichotomous) — **only when the meta-analysis includes at least 10 studies** (Handbook Chapter 13; Sterne et al., BMJ 2011); **trim-and-fill presented only as a sensitivity analysis, never as a corrected estimate** (Duval & Tweedie, 2000). With <10 studies, state plainly that asymmetry tests are uninformative and will not be run.
+14. **Heterogeneity reporting set.** τ² (with its estimator named), I² **with its confidence interval**, Cochran's Q, and a **prediction interval** for random-effects models (Riley et al., BMJ 2011) — with the standing caveats that I² is relative (it depends on study precision, is not the proportion of "true" heterogeneity in an absolute sense), and Q is underpowered with few studies and overpowered with many.
+15. **GRADE plan.** The outcomes to be graded and the Summary of Findings table structure (Phase 8e; Handbook Chapter 14).
+
+### Step 8c.2: The Analytical Approach Summary
+
+Compile every decision above into a single structured document, `analysis/analytical_approach_summary.md`, written so a researcher with no statistical training can understand what is being decided and why. For each decision the Summary states: (a) the recommended option; (b) the alternatives considered; (c) a plain-language, jargon-decoded rationale grounded in the data at hand (number of studies, event rarity, expected heterogeneity, study designs present) and the named standard (Cochrane Handbook chapter/section or cited guideline); and (d) the consequences of choosing otherwise. Technical terms are defined in brackets at first use (e.g., "τ² [the estimated variance of true effects across studies]").
+
+The Summary is saved to the export package and logged **in full** (document text and hash) in `audit_log.json`.
+
+### ── GATE 4c: Analysis Plan Approval ──
+
+**MANDATORY. No analytical decision may be executed without explicit, logged researcher approval at Gate 4c; the Analysis Plan Approval gate blocks all downstream statistical execution.** Present the Analytical Approach Summary. For **each** decision the researcher must **approve, amend, or reject** it; amendments are incorporated and the amended decision re-presented until the full plan is approved. Log every per-decision response (`action: "analysis_plan_decision"`), then the approved plan as machine-readable `analysis/analysis_plan.json` (hashed).
+
+**Post-approval changes:** any subsequent change to any analytical choice — including those prompted by the data — is an `analysis_plan_revision` entry with the reason, requires re-approval at this gate, and is disclosed in the methods as a deviation; analyses not pre-specified in the protocol are additionally labelled **post-hoc exploratory** in every table, plot, and paragraph in which they appear.
+
+**Do not proceed to Phase 8d until Gate 4c is complete and logged.**
+
+---
+
+## Phase 8d: Analysis Script Generation & Execution ♦
+
+### Step 8d.1: Language Preference (ask before any code exists)
+
+Before generating any analysis code, ask the researcher whether they prefer **Python or R**, recommend a default with a one-sentence reason, and honour their choice:
+
+> "Would you prefer the analysis in **R or Python**? I recommend **R**, because its `metafor` and `meta` packages are the most mature, best-validated meta-analysis tooling available and implement every method in your approved plan. Both options come with full beginner instructions — you do not need any coding experience either way."
+
+If the researcher chooses Python, honour it, and state honestly which approved-plan methods the pinned Python stack covers and which (if any) it does not; any coverage gap is presented as a plan consideration, not silently worked around, and specific package capabilities are verified live before the claim is made. Log the choice as `analysis_language` (`action: "analysis_language_preference"`).
+
+### Step 8d.2: Script Generation
+
+Generate the analysis script from the two locked inputs — `extraction_dataset.csv` (Gate 3d hash) and `analysis_plan.json` (Gate 4c hash). Requirements:
+
+1. **Implements only the approved plan.** Nothing in the script computes anything not in `analysis_plan.json`. The script reads the plan file and fails loudly if the dataset or plan hash on disk does not match the locked hashes.
+2. **Pinned library versions.** R: install/load pinned versions and record `sessionInfo()` to `analysis/environment_versions.txt` (verified current at v6 authoring: `metafor` 5.0-1, `meta` 8.3-0 — re-verify the researcher's installed versions and pin what is actually installed). Python: pinned `pip install` lines and a `pip freeze` record. The versions actually used are logged to `analysis_library_versions`.
+3. **Seed.** The logged review seed is set at the top of the script (it governs any resampling-based routine; core pooled estimates are deterministic given data + plan + versions regardless).
+4. **Beginner-annotated throughout.** A plain-English header states what the script does and exactly which files it reads and writes; a comment above **every** analytical block explains in non-technical terms what that step computes and why it is in the approved plan (referencing the Summary item); inline notes flag `# SAFE TO EDIT:` (e.g., plot labels, output folder) versus `# DO NOT CHANGE:` (anything affecting a statistic).
+5. **Outputs.** All numerical results to `analysis/results/` as CSV plus a full console log; all plots (forest, contour-enhanced funnel where planned) generated **by the script** to `analysis/plots/`; every output file hashed.
+6. **Hash and log the script.** Compute the script's SHA-256, log it (`action: "analysis_script_generated"`, with library pins), and record it in `analysis/script_hash_record.md`. Every script revision produces a new hash and a new log entry.
+7. **Setup and run instructions, assuming no coding experience.** For R, provide first-time setup instructions in exactly the register of the Phase 3 Python guidance: install R (https://cran.r-project.org/) and optionally RStudio; open the script; the script self-installs its pinned packages on first run; run it with one command (`Rscript analysis_script.R`) or the RStudio "Source" button. For Python, reuse the Phase 3 environment instructions with this script's pinned `pip install` line.
+
+### Step 8d.3: Execution-Mode Choice (MANDATORY question — never auto-execute)
+
+Immediately after producing the script, ask the researcher one explicit question: would they like to **run the script themselves manually** (with the instructions provided), or would they like **the skill to execute it on their behalf**? **Never auto-execute without this logged choice.** Log it per script (`action: "analysis_execution_choice"`).
+
+**If the skill executes:** display the exact command before running it; capture and present the **complete** output (stdout and stderr); save all result files to the researcher-set working directory; hash every output file and log the hashes (`action: "analysis_executed"`, including the command and an output-log hash).
+
+**If the researcher runs it manually:** tell them exactly which output files to bring back (name every expected file in `analysis/results/` and `analysis/plots/`). On receipt, **verify the outputs before proceeding**: completeness (every expected file present), expected structure (columns/rows consistent with the plan and dataset), and hash logging of every received file (`action: "analysis_outputs_received"`). If verification fails, diagnose with the researcher (most commonly a partial run or edited `DO NOT CHANGE` block) and re-run before proceeding.
+
+### ── GATE 4d: Execution Mode Logged & Outputs Verified ──
+
+**MANDATORY.** Confirm: language preference logged; script hash logged; execution-mode choice logged; execution output (or received files) captured, hashed, and verified. **Do not proceed to Phase 8e until Gate 4d is complete and logged.**
+
+---
+
+## Phase 8e: Results Verification, Certainty of Evidence & Reporting Outputs ♦
+
+### Step 8e.1: Factual Description of Outputs (no interpretation)
+
+Draft descriptions **strictly of the numbers present in the verified output files**, each with file-level provenance (e.g., "pooled RR 0.82, 95% CI 0.70–0.96; `results/primary_outcome.csv`, row 1"). The AI never restates a number that is not in an output file, never "adjusts" a number, and never interprets: clinical or scientific meaning, implications, and the discussion remain the researcher's, per the standing guardrail.
+
+### Step 8e.2: Heterogeneity Reporting
+
+For each pooled analysis, report the full planned set — τ² (estimator named), I² with its confidence interval, Q with its p-value, and the prediction interval — accompanied verbatim-in-substance by the caveats approved in the plan (I² is a relative measure; Q is power-dependent; the prediction interval describes where the effect of a new study is expected to lie, and is often the most honest summary under heterogeneity).
+
+### Step 8e.3: Planned Diagnostics Only
+
+Present subgroup analyses, meta-regression, sensitivity analyses, and small-study-effects diagnostics exactly as planned — and only as planned. Anything the researcher now wants beyond the plan goes back through Gate 4c as a revision and is labelled post-hoc exploratory. If fewer than 10 studies, the small-study-effects section states that asymmetry tests were not performed and why.
+
+### Step 8e.4: GRADE Certainty Assessment (assisted, human-confirmed)
+
+Mirroring the Phase 8 RoB pattern: for each graded outcome, apply GRADE (Handbook Chapter 14; Guyatt et al., 2008) via structured prompting at `temperature=0` — starting certainty by design; the five downgrade domains (risk of bias, drawing on Gate 4 judgments; inconsistency, drawing on the heterogeneity outputs; indirectness; imprecision, drawing on CIs and information size; publication bias, drawing on Step 8e.3); the three upgrade domains for non-randomised evidence — each with quoted evidence from this review's own logged outputs and a recommended judgment. **Every domain judgment and every overall certainty rating must be confirmed or overridden by the researcher**, logged as at Gate 4 (`action: "grade_judgment"`). Generate the Summary of Findings table (`grade/summary_of_findings.md`) from confirmed judgments and verified numbers only. Optionally export a worksheet compatible with GRADEpro GDT (https://www.gradepro.org/) for teams that use it.
+
+### Step 8e.5: Statistical Methods Paragraph & Reproducibility Bundle
+
+Generate a publication-ready statistical methods paragraph that states: each effect measure and pooling method; the model, τ² estimator, and HKSJ use; heterogeneity statistics reported; subgroup/meta-regression/sensitivity analyses (pre-specified vs post-hoc); small-study-effects methods and the ≥10-studies rule as applied; the software and **pinned library versions actually used**; the script hash; and the statement that all statistics were computed by the cited software via logged scripts. Cross-check every sentence against `analysis_plan.json` and the outputs — the paragraph may not describe anything that was not run.
+
+### ── GATE 4e: Results & Certainty Verification ──
+
+**MANDATORY.** The researcher verifies **every reported number against the script output files** (spot-check minimum: every pooled estimate, CI, τ², I², prediction interval, and every SoF cell), confirms the heterogeneity caveats, confirms every GRADE judgment, and approves the Summary of Findings table and statistical methods paragraph. Log the verification. **Do not proceed to Phase 9 until Gate 4e is complete and logged.**
 
 ---
 
@@ -2039,6 +2397,29 @@ exports/
 ├── risk_of_bias/
 │   ├── rob_assessments.csv
 │   └── rob_summary_table.md
+├── extraction/                       ← all reviews with data extraction
+│   ├── extraction_guideline.json     ← TDPL, all versions, hashed
+│   ├── extraction_conventions_registry.json
+│   ├── extraction_pilots/
+│   │   └── pilot_reports.md          ← composition, error rates, root-cause tables, guideline-lock record
+│   ├── extraction_dataset.csv        ← locked at Gate 3d (hash recorded)
+│   ├── extraction_evidence_anchors.csv
+│   ├── extraction_discrepancy_log.csv  ← with root-cause classes
+│   ├── anchor_verification_report.md
+│   └── upstream_specification_flags.md ← every flag raised + researcher decision
+├── analysis/                         ← synthesis_mode = meta_analysis
+│   ├── analytical_approach_summary.md  ← the Gate 4c document, as approved
+│   ├── analysis_plan.json            ← machine-readable approved plan (hashed)
+│   ├── analysis_script.R | analysis_script.py  ← + script_hash_record.md (SHA-256 per version)
+│   ├── environment_versions.txt      ← sessionInfo() / pip freeze
+│   ├── results/                      ← raw script outputs, per-file hashes
+│   ├── plots/                        ← forest / funnel plots (script-generated)
+│   └── statistical_methods_paragraph.md
+├── swim_synthesis/                   ← outcomes routed to SWiM
+│   └── swim_report.md
+├── grade/
+│   ├── grade_worksheet.csv
+│   └── summary_of_findings.md
 ├── prisma/
 │   ├── prisma_flow_diagram.svg
 │   ├── prisma_flow_diagram_source.json
@@ -2052,7 +2433,7 @@ exports/
 
 **`ai_transparency_statement.md`** — the AI Transparency Block formatted for inclusion in a manuscript or appendix.
 
-**`performance_monitoring_report.md`** summarises: all alerts, drift events, AI-human agreement rates, ground-truth performance metrics, inter-rater reliability (Cohen's κ + % agreement + PABAK, per the κ Interpretation Guidance), pilot-phase metrics and the criteria-lock record, override patterns, calibration effectiveness (per-batch accuracy trends, lesson hit rates, calibration regression events), calibration warnings, and the model id/version used per batch.
+**`performance_monitoring_report.md`** summarises: all alerts, drift events, AI-human agreement rates, ground-truth performance metrics, inter-rater reliability (Cohen's κ + % agreement + PABAK, per the κ Interpretation Guidance), pilot-phase metrics and the criteria-lock record, override patterns, calibration effectiveness (per-batch accuracy trends, lesson hit rates, calibration regression events), calibration warnings, and the model id/version used per batch. For reviews with data extraction it surfaces the **extraction trail**: TDPL versions and per-data-point decisions; pilot error rates (value errors, NOT_LOCATED, anchor-verification failures) and the guideline-lock record; the conventions registry; root-cause classification counts by class; every `UPSTREAM_SPECIFICATION_FLAG` and its resolution; dual-extraction discrepancy rates; and the locked dataset hash. For synthesis reviews it additionally surfaces the **full analytic decision trail**: extraction verification and discrepancy rates; every analysis-plan decision with its recommendation, rationale, and the researcher's approval or amendment; the language preference; every script version and SHA-256 hash with its pinned library versions; every execution-mode choice; execution outputs or received files and their hashes; and every analysis-plan revision with its reason — such that the entire analytic path is reconstructable from `audit_log.json` alone.
 
 **`audit_chain_verification.py`** — provide with full beginner-friendly run instructions.
 
@@ -2060,7 +2441,7 @@ exports/
 
 ## Design Principles
 
-1. **The human decides; the AI recommends.** Every inclusion, exclusion, and risk-of-bias judgment is a recommendation until the researcher confirms it.
+1. **The human decides; the AI recommends; the code computes.** Every inclusion, exclusion, risk-of-bias, extraction, analytical, and certainty judgment is a recommendation until the researcher confirms it — and every statistical quantity is computed by executed, version-pinned statistical code, never by the model (Phases 8b–8e).
 
 2. **Independent dual screening.** Two independent reviewers (human and/or AI) screen all records, with conflict resolution by a third-party adjudicator. This meets the Cochrane Handbook v6.5 requirement for independent duplicate screening.
 
@@ -2082,6 +2463,14 @@ exports/
 
 11. **Updates are first-class.** An update review reuses the prior protocol and search strings verbatim (date-restricted), dedups against the prior corpus with carried-forward decisions, and reports with the PRISMA update layout — none of it improvised.
 
-12. **Pilot before scale.** No full screen begins until stratified calibration pilots with blind 100% human audit pass the κ gate (reported as κ + % agreement + PABAK, with disagreement direction) and the criteria — including the eligibility-rules registry — are locked at Gate 2a.
+12. **Pilot before scale.** No full screen begins until stratified calibration pilots with blind 100% human audit pass the κ gate (reported as κ + % agreement + PABAK, with disagreement direction) and the criteria — including the eligibility-rules registry — are locked at Gate 2a. The same principle governs extraction: no full extraction begins until the extraction calibration pilots pass the field-level error gate and the Extraction Guideline is locked at Gate 3c.
 
 13. **Honest about cost and about determinism.** Screening at genuine reading depth is the dominant cost of the review: the researcher gets an upfront records→batches→sessions estimate and chooses the pacing, and progress is checkpointed so it survives interruption. Reproducibility claims never exceed what the logging actually guarantees.
+
+14. **Statistics only from executed code.** The language model never computes, estimates, or "corrects" a statistical quantity. All numbers flow from version-pinned libraries invoked through generated, hashed, human-runnable scripts, with the dataset, plan, script, and environment all locked and logged — so the computed results are exactly re-runnable.
+
+15. **Pre-specification over flexibility.** Analytical choices are pre-specified in the protocol, fixed in the researcher-approved analysis plan (Gate 4c), and changed only by logged, re-approved revisions; anything not pre-specified is labelled post-hoc exploratory wherever it appears.
+
+16. **Accessibility extends to statistics.** The Analytical Approach Summary decodes every analytical choice into plain language before the researcher approves it; analysis scripts carry beginner annotations and full setup/run instructions in both offered languages; and the researcher always chooses whether to run the analysis themselves or have the skill execute it — asked explicitly, never assumed.
+
+17. **Every value is anchored; every disagreement is routed.** No extracted value exists without a verbatim quote and a machine-verifiable document location, and every audited extraction disagreement is classified by root cause — transcription, convention, guideline defect, or upstream misspecification — so learning lands where the defect actually lives instead of being flattened into a prompt tweak.

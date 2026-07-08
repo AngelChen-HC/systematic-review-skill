@@ -1,4 +1,4 @@
-# Installing the Systematic Review Coordinator Skill (v5.0)
+# Installing the Systematic Review & Meta-Analysis Coordinator Skill (v7.0)
 
 This guide covers every way to install this skill, step by step. **No coding experience is required** for the Claude.ai route (Option 1) — it is a matter of downloading one ZIP file and uploading it.
 
@@ -127,7 +127,7 @@ Custom skills can be uploaded and used programmatically via the Skills API. Two 
 
 - **Claude.ai:** delete the old skill from **Settings → Customize → Skills**, then upload the new ZIP (Steps 2–3 above). Re-verify with a new conversation.
 - **Claude Code:** `cd ~/.claude/skills/systematic-review-coordinator && git pull` (or replace the folder), then start a new session.
-- **Mid-review warning:** the skill's audit log records `prompt_version` (e.g., v5.0) on every entry. If you upgrade the skill in the middle of a live review, this is a protocol-relevant change — log it as a deviation in your audit log, exactly as the skill requires for any other change to the screening instructions.
+- **Mid-review warning:** the skill's audit log records `prompt_version` (e.g., v7.0) on every entry. If you upgrade the skill in the middle of a live review, this is a protocol-relevant change — log it as a deviation in your audit log, exactly as the skill requires for any other change to the screening instructions.
 
 ---
 
