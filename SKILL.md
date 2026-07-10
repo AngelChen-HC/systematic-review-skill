@@ -2,41 +2,21 @@
 name: systematic-review-coordinator
 metadata:
   version: "8.0"
-description: >
-  Orchestrates a rigorous, auditable, and PRISMA-compliant systematic
-  literature review workflow — for NEW reviews and for UPDATES of
-  existing reviews — with full human oversight and independent dual
-  screening. Automates search construction, retrieval, deduplication
-  (including dedup against a prior review corpus), and screening at
-  scale (stable record IDs, batching, checkpoint/resume), with a
-  mandatory pilot→calibrate→scale validation protocol before any full
-  screen, while enforcing 100% human audit of all inclusion/exclusion
-  decisions and risk of bias assessments. Includes AI transparency
-  reporting and generates a researcher-editable PRISMA flow diagram
-  (new-review and update layouts). v6 adds an automated quantitative
-  meta-analysis workflow. v7 makes study data extraction a first-class
-  phase for ALL reviews: a researcher-confirmed Target Data-Point List
-  (TDPL), an extraction-conventions registry, a pilot-based extraction
-  calibration loop with root-cause routing, independent dual
-  extraction, and quote-plus-location evidence anchors that are
-  machine-verified against each source document. Downstream synthesis
-  adds a human-gated analysis plan (Analytical Approach Summary), generation
-  of beginner-annotated R or Python analysis scripts with pinned
-  statistical libraries (all statistics computed by executed code,
-  never by the model), heterogeneity and small-study-effects
-  diagnostics, GRADE certainty assessment, and publication-ready
-  forest/funnel plots and Summary of Findings tables. v8 adds an
-  optional learned-alignment loop (Phase 5c): a local open-weights
-  screener fine-tuned on the review's own audited decisions via
-  LoRA/QLoRA adapters (peft/trl), admitted only through a recall-safe
-  promotion gate with researcher confirmation (Gate 5c) and exported
-  as a review-specific, non-transferable artifact. Designed to be
-  used by researchers with no prior coding experience. Activates when
-  a user requests a systematic review, a review update, a literature
-  search based on a research question, a meta-analysis (new, or of
-  already-extracted data), quantitative evidence synthesis, data
-  extraction from included studies (with or without meta-analysis),
-  evidence tables, forest or funnel plots,
+description: >-
+  Orchestrates rigorous, auditable, PRISMA-compliant systematic reviews
+  — NEW and UPDATE — with human-approval gates, independent dual
+  screening, and 100% human audit. Automates search construction,
+  retrieval, deterministic deduplication (incl. prior-corpus), and
+  screening at scale (stable IDs, batching, checkpoint/resume) under a
+  pilot→calibrate→scale protocol; adds evidence-anchored data extraction
+  (TDPL), meta-analysis via pinned R/Python libraries (code computes,
+  never the model), GRADE, AI transparency reporting, and editable
+  PRISMA diagrams. v8 adds an optional learned-alignment loop: a local
+  open-weights screener fine-tuned on the review's audited decisions,
+  gated by informed opt-in (Gate 2c) and a recall-safe promotion check
+  (Gate 5c). Built for researchers with no coding experience. Activates
+  for systematic reviews, review updates, literature searches,
+  meta-analysis, data extraction, evidence tables, forest/funnel plots,
   heterogeneity or publication-bias assessment, or GRADE/Summary of
   Findings work.
 ---
