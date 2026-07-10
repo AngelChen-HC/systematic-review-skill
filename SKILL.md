@@ -1,42 +1,27 @@
 ---
 name: systematic-review-coordinator
 metadata:
-  version: "7.0"
-description: >
-  Orchestrates a rigorous, auditable, and PRISMA-compliant systematic
-  literature review workflow — for NEW reviews and for UPDATES of
-  existing reviews — with full human oversight and independent dual
-  screening. Automates search construction, retrieval, deduplication
-  (including dedup against a prior review corpus), and screening at
-  scale (stable record IDs, batching, checkpoint/resume), with a
-  mandatory pilot→calibrate→scale validation protocol before any full
-  screen, while enforcing 100% human audit of all inclusion/exclusion
-  decisions and risk of bias assessments. Includes AI transparency
-  reporting and generates a researcher-editable PRISMA flow diagram
-  (new-review and update layouts). v6 adds an automated quantitative
-  meta-analysis workflow. v7 makes study data extraction a first-class
-  phase for ALL reviews: a researcher-confirmed Target Data-Point List
-  (TDPL), an extraction-conventions registry, a pilot-based extraction
-  calibration loop with root-cause routing, independent dual
-  extraction, and quote-plus-location evidence anchors that are
-  machine-verified against each source document. Downstream synthesis
-  adds a human-gated analysis plan (Analytical Approach Summary), generation
-  of beginner-annotated R or Python analysis scripts with pinned
-  statistical libraries (all statistics computed by executed code,
-  never by the model), heterogeneity and small-study-effects
-  diagnostics, GRADE certainty assessment, and publication-ready
-  forest/funnel plots and Summary of Findings tables. Designed to be
-  used by researchers with no prior coding experience. Activates when
-  a user requests a systematic review, a review update, a literature
-  search based on a research question, a meta-analysis (new, or of
-  already-extracted data), quantitative evidence synthesis, data
-  extraction from included studies (with or without meta-analysis),
-  evidence tables, forest or funnel plots,
+  version: "8.0"
+description: >-
+  Orchestrates rigorous, auditable, PRISMA-compliant systematic reviews
+  — NEW and UPDATE — with human-approval gates, independent dual
+  screening, and 100% human audit. Automates search construction,
+  retrieval, deterministic deduplication (incl. prior-corpus), and
+  screening at scale (stable IDs, batching, checkpoint/resume) under a
+  pilot→calibrate→scale protocol; adds evidence-anchored data extraction
+  (TDPL), meta-analysis via pinned R/Python libraries (code computes,
+  never the model), GRADE, AI transparency reporting, and editable
+  PRISMA diagrams. v8 adds an optional learned-alignment loop: a local
+  open-weights screener fine-tuned on the review's audited decisions,
+  gated by informed opt-in (Gate 2c) and a recall-safe promotion check
+  (Gate 5c). Built for researchers with no coding experience. Activates
+  for systematic reviews, review updates, literature searches,
+  meta-analysis, data extraction, evidence tables, forest/funnel plots,
   heterogeneity or publication-bias assessment, or GRADE/Summary of
   Findings work.
 ---
 
-# Systematic Review & Meta-Analysis Coordinator — Optimised Skill (v7.0)
+# Systematic Review & Meta-Analysis Coordinator — Optimised Skill (v8.0)
 
 ---
 
@@ -65,6 +50,15 @@ This skill is designed to align with the following verified standards and guidel
 - **Funnel-plot asymmetry** — Egger M, Davey Smith G, Schneider M, Minder C. *BMJ* 1997;315:629–34; Peters JL, Sutton AJ, Jones DR, Abrams KR, Rushton L. *JAMA* 2006;295:676–80 (Peters' test); Peters JL, et al. "Contour-enhanced meta-analysis funnel plots help distinguish publication bias from other causes of asymmetry." *Journal of Clinical Epidemiology* 2008;61:991–6; Sterne JAC, Sutton AJ, Ioannidis JPA, et al. "Recommendations for examining and interpreting funnel plot asymmetry in meta-analyses of randomised controlled trials." *BMJ* 2011;343:d4002 (the ≥10-studies rule); Duval S, Tweedie R. "Trim and fill: a simple funnel-plot-based method of testing and adjusting for publication bias in meta-analysis." *Biometrics* 2000;56:455–63 (sensitivity use only).
 - **Variance derivation from imperfect reporting** — Wan X, Wang W, Liu J, Tong T. *BMC Medical Research Methodology* 2014;14:135; Hozo SP, Djulbegovic B, Hozo I. *BMC Medical Research Methodology* 2005;5:13; Luo D, Wan X, Liu J, Tong T. *Statistical Methods in Medical Research* 2018;27:1785–805; Tierney JF, Stewart LA, Ghersi D, Burdett S, Sydes MR. "Practical methods for incorporating summary time-to-event data into meta-analysis." *Trials* 2007;8:16.
 
+**Learned-alignment tooling (added in v8; software versions verified live on PyPI at v8 authoring, 2026-07-10):**
+
+- **transformers 5.13.0**, **datasets 5.0.0**, **accelerate 1.14.0**, **torch 2.13.0** — Hugging Face model/data/runtime stack for the optional Phase 5c local screener.
+- **peft 0.19.1** — parameter-efficient fine-tuning (LoRA/QLoRA adapters). LoRA: Hu EJ, Shen Y, Wallis P, et al. "LoRA: Low-Rank Adaptation of Large Language Models." arXiv:2106.09685 (2021). QLoRA: Dettmers T, Pagnoni A, Holtzman A, Zettlemoyer L. "QLoRA: Efficient Finetuning of Quantized LLMs." arXiv:2305.14314 (2023).
+- **trl 1.8.0** — SFTTrainer / DPOTrainer / KTOTrainer. DPO: Rafailov R, et al. "Direct Preference Optimization: Your Language Model is Secretly a Reward Model." arXiv:2305.18290 (2023). KTO: Ethayarajh K, Xu W, Muennighoff N, Jurafsky D, Kiela D. "KTO: Model Alignment as Prospect Theoretic Optimization." arXiv:2402.01306 (2024).
+- **bitsandbytes 0.49.2** — 4-bit quantisation for the QLoRA consumer-GPU fallback (CUDA only).
+
+These are cited as pinned software tooling (exactly as v6 pinned `metafor`/`meta`), not as methodological standards; the methodological controls on their use are Phase 5c's recall-safe promotion gate and Gate 5c. All four papers above were individually verified as real at v8 authoring.
+
 **Note on AI-SR benchmarking literature:** Published studies on LLM performance in systematic review tasks (e.g., Khraisha et al. 2024 on GPT-4 screening; Wang et al. 2023 on Boolean query generation) inform the design of this skill's performance monitoring. However, specific performance claims are not made — actual performance depends on the review topic, model version, and prompt. The ground-truth validation system (Phase 5) measures performance empirically for each review rather than relying on literature estimates.
 
 **Note on v5 operational additions:** The capabilities added in v5 — Update-Review Mode, Screening at Scale (stable IDs, batching, checkpoint/resume), the Pilot → Calibrate → Scale validation protocol, the eligibility-rules registry, κ interpretation guidance (including % agreement and PABAK), risk-based audit, environment fallbacks, and the PRISMA update layout — are **internal design guidance** derived from direct operational experience running this skill on a live PROSPERO-track review update. They introduce **no new external citations**. Where they touch reporting or methodology, they are grounded in the standards already listed above: PRISMA 2020 (flow-diagram bookkeeping, including for updated reviews), PRISMA-S (search reporting, including date limits and re-run searches), the Cochrane Handbook v6.5 (independent duplicate screening, pilot testing of eligibility criteria and screening forms), and PRISMA-trAIce/RAISE (AI transparency). PABAK (prevalence-adjusted bias-adjusted kappa) is used here as a well-established descriptive agreement statistic; it is computed and reported, not cited as a new standard.
@@ -72,6 +66,8 @@ This skill is designed to align with the following verified standards and guidel
 **Note on v6 meta-analysis additions:** Phases 8b–8e extend the skill from study selection and appraisal into quantitative synthesis. The extension preserves and generalises the v5 architecture: dual, independent, human-adjudicated work (extraction mirrors dual screening); human-approval gates before anything irreversible (the Analysis Plan Approval gate mirrors the criteria lock); and hash-chained logging of every decision, script, and output. The former guardrail against "unsupervised meta-analytical mathematics" is not deleted but made precise: statistics are computed exclusively by executed, version-pinned statistical libraries through hashed, human-runnable scripts; the language model recommends, extracts (with verification), generates code, and describes — it never computes. Interpretation and the discussion remain out of scope, unchanged.
 
 **Note on v7 extraction additions:** v7 promotes study data extraction from a synthesis-only preliminary (the former Phase 8b) to a first-class phase for all reviews (Phase 7b, positioned before risk of bias so RoB assessment can draw on the same anchored text layers). It generalises three existing v5 mechanisms rather than inventing new ones: the eligibility-rules registry becomes an **extraction-conventions registry**; the Phase 5a pilot → calibrate → lock → scale loop becomes an **extraction calibration loop** gated on field-level error rates (κ is deliberately not used — extraction is not a two-rater categorical task); and per-record evidence quoting becomes mandatory **evidence anchoring** (verbatim quote + PDF hash + page + text-layer line range + structural reference), machine-verified by a shipped script. Its distinctive control is the **root-cause router**: every audited extraction disagreement is classified as a transcription error (→ calibration example), a missing convention (→ registry rule), a TDPL defect (→ logged guideline amendment), or an upstream misspecification (→ `UPSTREAM_SPECIFICATION_FLAG` to the researcher) — so the loop never silently patches downstream what belongs in the protocol.
+
+**Note on v8 learned-alignment additions:** v8 adds one optional, trigger-based capability: **Phase 5c — Learned Alignment**, which fine-tunes a **local open-weights screener** (1–8B class, researcher-selected, revision-pinned) on this review's own human-audited decisions using LoRA/QLoRA adapters (`peft`/`trl`, pinned above). It is the **slow path** beside the unchanged prompt-calibration **fast path** (Active Learning): it activates only when the fast path plateaus (defined trigger) or at researcher request. The division of labour is unchanged — the human decides, the AI recommends, the code computes — and the orchestrating model is **never** fine-tuned. Ground-truth validation records are excluded from all training by an asserted record-ID manifest and serve as the promotion test set; an adapter reaches live use only through a recall-safe promotion gate (retain/discard sensitivity ≥ max(incumbent, 0.95), bounded specificity loss) **plus** researcher confirmation at a new **Gate 5c** — and no training runs at all until the researcher makes an informed choice at a new **Gate 2c** (the full time / API-cost / research-data / efficiency / effectiveness notice, with the drawbacks of both options stated side by side; a logged opt-out is a first-class, fully valid outcome); failed adapters are archived, never deployed; regression alerts trigger automatic rollback (automatic promotion never happens). The objective is stated plainly throughout: convergence with **this researcher's audited judgment under this locked protocol** — calibration, not ground truth in general — and adapters export as review-specific, **non-transferable** artifacts. v8 also folds in the Engineering Brief #2 patches: benchmark retrieval validation of search strings (Step 2.3d, gating Gate 1), anchor-reference elicitation at kickoff, the credential-store/keychain security boundary, this mid-review upgrade policy, per-audited-batch agreement metrics with a scripted mid-screen re-scan, generic boundary-policy calibration templates, and a hashed human-readable rendering of the locked rulebook.
 
 ---
 
@@ -89,6 +85,7 @@ This skill is designed to align with the following verified standards and guidel
 - **DO NOT** conduct risk of bias assessment without the researcher providing their chosen framework.
 - **DO NOT** execute any Python script without first providing the researcher with clear, step-by-step setup and run instructions suitable for someone with no coding experience.
 - **DO NOT** instruct the researcher to modify their operating-system or browser trust store, or any shared certificate bundle, without first explaining what the change does and obtaining their explicit consent. Prefer non-invasive, script-scoped alternatives (see Phase 3).
+- **DO NOT** read, write, or modify the researcher's operating-system credential store, keychain, or OS trust root — not even transiently, and not to work around a TLS/certificate failure — unless the researcher explicitly and durably consents in advance. When an API cannot be reached cleanly, the default fallback is a manual search-and-export (Phase 3), never a credential-store workaround.
 - **DO NOT** cite, reference, or rely on any guideline, framework, or publication that has not been independently verified as real and currently accessible.
 - **DO NOT** execute, or present results from, any statistical analysis before Gate 4c (Analysis Plan Approval) is passed. Every analytical choice — effect measure, model, τ² estimator and small-sample adjustment, pooling method, multi-arm/cluster/crossover/rare-event handling, conversions, subgroups, meta-regression covariates, sensitivity analyses, small-study-effects diagnostics — requires explicit, logged researcher approval first.
 - **DO NOT** run an analysis script without the researcher's logged execution-mode choice (Step 8d.3): the researcher runs it manually, or explicitly asks the skill to execute it. Never auto-execute.
@@ -99,6 +96,12 @@ This skill is designed to align with the following verified standards and guidel
 - **DO NOT** record an extracted value without a complete evidence anchor (verbatim quote + source PDF hash + page + text-layer line range + structural reference). A value without an anchor is not a value; it is `NOT_LOCATED`.
 - **DO NOT** flatten extraction disagreements into prompt tweaks. Every audited disagreement is routed by root cause (transcription error → calibration example; missing convention → registry rule; TDPL defect → logged amendment; upstream misspecification → `UPSTREAM_SPECIFICATION_FLAG` presented to the researcher). Upstream defects are never silently patched downstream.
 - **DO NOT** apply the risk-based audit option to data extraction: extraction verification is 100% human, always.
+- **DO NOT** fine-tune, or claim to fine-tune, the orchestrating model. Only the optional local open-weights screener (Phase 5c) is fine-tuned, and only on this review's own audited decisions.
+- **DO NOT** train the local screener on any ground-truth validation record. Those records are the promotion test set; exclusion is enforced by a record-ID manifest that `build_training_set.py`, `train_adapter.py`, and `evaluate_adapter.py` all assert against, and a violated assertion aborts the run.
+- **DO NOT** let the fine-tuned local screener auto-finalise, auto-exclude, or act as the sole authoritative screen. It is a second concurrent reviewer / high-recall triage aid: authoritative recommendations still come from genuine per-record reading, and every decision still passes the existing human gates unchanged.
+- **DO NOT** deploy an adapter that has not passed the recall-safe promotion gate AND received explicit researcher confirmation at Gate 5c. Automatic rollback to the last promoted adapter (or prompt-only mode) is permitted on regression alerts because it only returns to a previously human-approved state; automatic promotion never is.
+- **DO NOT** run any fine-tuning step — not even the training-set build — unless the most recent `fine_tuning_decision` in the audit log is an informed **OPT_IN** recorded at Gate 2c. Kickoff silence, deferral, or a config flag is not consent; a logged opt-out blocks the scripts mechanically and is re-litigated only on a fresh plateau trigger or the researcher's own request.
+- **DO NOT** allow the local screener to compute any statistic, perform any conversion, or record any extraction value without a machine-verifiable evidence anchor — an unanchored proposal is `NOT_LOCATED`, exactly as in Phase 7b. All Phase 5c metrics are computed by the shipped scripts (`srlib/metrics.py`), never by any language model.
 
 ---
 
@@ -116,7 +119,7 @@ AI_TRANSPARENCY:
     constant}
   model_provider: {provider name, e.g., Anthropic}
   inference_api_version: {API version used}
-  prompt_version: {skill version, e.g., v7.0}
+  prompt_version: {skill version, e.g., v8.0}
   temperature: 0
   seed: {researcher-set seed — logged for traceability; see
     reproducibility_basis below}
@@ -136,7 +139,8 @@ AI_TRANSPARENCY:
     - Search string generation (approved by human before execution)
     - Risk of bias assessment assistance (all judgments confirmed by human)
     - PRISMA diagram generation (finalised by human)
-    - Active learning calibration (prompt updated with human-approved correction examples between batches; model not fine-tuned)
+    - Active learning calibration — fast path (prompt updated with human-approved correction examples between batches; the orchestrating model itself is never fine-tuned)
+    - Learned alignment — slow path, optional (Phase 5c: a LOCAL open-weights screener is fine-tuned on this review's human-audited decisions via versioned LoRA/QLoRA adapters; it recommends and triages only, is deployed solely after the recall-safe promotion gate and Gate 5c researcher confirmation, and is recorded per batch in the learned_alignment block below)
     - Data extraction assistance (TDPL researcher-confirmed at Gate 3b; every value quote-and-location anchored, machine-verified, and human-verified against the source; independent dual extraction; dataset locked at Gate 3d)
     - Analysis-plan recommendation via the Analytical Approach Summary (every analytical choice approved by the human at Gate 4c)
     - Analysis script generation (all statistics computed by executed, version-pinned statistical libraries — never by the model; scripts hashed)
@@ -150,6 +154,8 @@ AI_TRANSPARENCY:
     - Performance metrics are internal to this review and not externally benchmarked
     - AI-assisted screening does not replace independent human review; it augments it
     - AI-assisted data extraction may mis-transcribe, mis-locate, or confabulate values; the extraction calibration pilots, machine anchor verification, dual independent extraction, and 100% source verification (Gates 3b–3d) mitigate this
+    - A local model fine-tuned on this review's decisions can overfit the researcher's early errors and inherit their systematic blind spots; the 100% human audit, the per-batch ground-truth monitoring, and the recall-safe promotion gate on never-trained records remain the controls
+    - When the fine-tuned local screener serves as Reviewer B (Phase 5b), its errors are correlated with the audited Reviewer-A stream it was trained on; this reduces the error-independence of dual screening and is disclosed as a limitation (a second human reviewer remains the Cochrane-compliant option)
 
   extraction:
     tdpl_version_hashes: {every Extraction Guideline version, hashed}
@@ -161,6 +167,32 @@ AI_TRANSPARENCY:
     note: Every extracted value carries a verbatim quote and a resolvable
       document location (PDF hash, page, text-layer line range), verified
       mechanically and by the researcher.
+
+  learned_alignment:   # state "not used" if Phase 5c was never activated
+    enabled: {true | false}
+    fine_tuning_decision: {OPT_IN | OPT_OUT | not_triggered — the Gate 2c
+      outcome, with decided_at, reviewer id, decision context (kickoff |
+      plateau_trigger | researcher_request), and the SHA-256 of the exact
+      disclosure text shown; "offered and declined" is reported, not hidden}
+    local_screener_per_batch: {batch → {orchestrator_model_id_and_version,
+      local_base_model_id, local_base_model_revision,
+      adapter_version | "prompt-only", adapter_weights_sha256 | null,
+      prompt_version_hash} — the per-batch triple of orchestrator id,
+      local adapter version+hash, and prompt hash, recorded for every
+      batch in which the local screener produced any recommendation}
+    adapter_registry: {adapter_version → weights_sha256, base id+revision,
+      training_dataset_hash, record-ID manifest path, hyperparameter record,
+      promotion_report path, promoted_at | archived}
+    ground_truth_exclusion_manifest_sha256: {hash of the record-ID manifest
+      of promotion-test records excluded from all training}
+    training_data_scope: this review's audited decisions only — pilot blind
+      audits, audited screening batches, adjudicated dual-screening
+      conflicts, audited full-text decisions, and Phase 7b
+      transcription-class corrections; never ground-truth validation records
+    non_transferability: adapters are review-specific calibration artifacts
+      (convergence with this researcher's audited judgment under this locked
+      protocol); they are exported with the reproducibility package but must
+      not be reused for other reviews or presented as generally validated
 
   analysis:
     synthesis_mode: {meta_analysis | swim_narrative | none — per outcome where mixed}
@@ -174,6 +206,7 @@ AI_TRANSPARENCY:
   disclosure:
     - This review used AI-assisted screening with human audit (100% by default; if the documented risk-based audit variant was used, state it here as a limitation) and independent dual screening
     - AI involvement is reported in accordance with PRISMA-trAIce (experimental) and RAISE (2025) guidance
+    - Where Phase 5c was used: a local open-weights model ({base_model_id}, revision-pinned) was fine-tuned on this review's own human-audited decisions using parameter-efficient adapters (peft/trl versions above); adapter versions, weight hashes, training-data manifests and promotion-gate reports are in the audit log and export package, and the tuned model never finalised any decision
 ```
 
 ---
@@ -192,7 +225,7 @@ Before any work begins, the following parameters must be set and logged. Present
     "inference_api_version": "string — API version",
     "temperature": 0,
     "seed": "integer — SET BY THE RESEARCHER (logged for traceability; see below)",
-    "prompt_version": "v7.0",
+    "prompt_version": "v8.0",
     "max_tokens_screening": "integer — max output tokens for screening calls",
     "review_mode": "\"new\" | \"update\" — SET IN PHASE 0 (see Mode Selector)",
     "prior_corpus_paths": "array of strings — update mode only: paths to the prior review's screened corpus exports (RIS/BibTeX/CSV; EndNote libraries must be exported to RIS first)",
@@ -212,7 +245,28 @@ Before any work begins, the following parameters must be set and logged. Present
     "analysis_execution_mode": "object — script → \"researcher_manual\" | \"skill_executed\" (logged per script at Step 8d.3)",
     "extraction_pilot_size": "integer — default 4 studies per extraction calibration pilot (Phase 7b)",
     "extraction_error_threshold": "float — default 0.05: maximum tolerated numeric-field error rate on a fresh pilot before the extraction guideline may lock (Gate 3c)",
-    "extractor_b": "\"second_human\" (preferred) | \"second_blinded_ai_pass\" (documented limitation) — SET AT KICKOFF (item 13)"
+    "extractor_b": "\"second_human\" (preferred) | \"second_blinded_ai_pass\" (documented limitation) — SET AT KICKOFF (item 13)",
+    "benchmark_validation": {
+      "anchor_references": "array — 2–5 confirmed items (title, DOI/URL, provenance) elicited at Step 0.3",
+      "benchmark_set": "array — the N selected in-scope references (id, DOI, title, source anchor)",
+      "benchmark_seed": "int — equals the review seed unless overridden (logged)",
+      "benchmark_size": "int — default 10",
+      "target_retrieval_rate": "float — default 1.0",
+      "retrieval_result": "object — per-database and pooled found/N, populated at Step 2.3d"
+    },
+    "learned_alignment": {
+      "enabled": "boolean — default false; flipped true ONLY by an informed OPT_IN at Gate 2c (decide_fine_tuning.py); the scripts check the logged decision, not this flag — kickoff item 14 may bring Gate 2c forward but never substitutes for it",
+      "base_model_id": "string — researcher-selected open-weights instruct model, 1–8B class (default \"Qwen/Qwen2.5-1.5B-Instruct\"; see the Phase 5c hardware-tier table, licence column included)",
+      "base_model_revision": "string — the exact model commit resolved and pinned at first download, never left floating",
+      "quantization": "\"none\" | \"4bit\" — 4bit = QLoRA via bitsandbytes (CUDA GPUs only)",
+      "active_adapter": "\"prompt-only\" | adapter version — changed ONLY by promote_adapter.py (Gate 5c) or a logged rollback",
+      "plateau_trigger": {"override_rate_threshold": 0.10, "consecutive_batches": 3, "requires_active_calibration": true},
+      "data_floors": {"min_training_records": 100, "min_includes": 8},
+      "stage2_thresholds": {"dpo_min_pairs": 40, "dpo_min_dangerous_direction_pairs": 10, "kto_min_examples": 60},
+      "promotion_gate": {"sensitivity_floor": 0.95, "max_specificity_drop": 0.05},
+      "lora": {"r": 16, "alpha": 32, "dropout": 0.10, "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj"]},
+      "seed": "integer — the review seed (governs sampling, splits, oversampling, training)"
+    }
   }
 }
 ```
@@ -232,6 +286,7 @@ What this skill **can** honestly promise, and how:
 3. **Deterministic sampling.** Pilot samples, ground-truth samples, and batch ordering are drawn by deterministic procedures (stable-ID order or seeded sampling), so *which records were looked at, in what order* is exactly reproducible.
 4. **Per-batch model identity.** The model id + version actually used is logged for every batch. Long screens span multiple sessions; the model can change between sessions, and this must be captured rather than assumed constant.
 5. **Analysis determinism (Phases 8b–8e).** Statistical results are deterministic given the same extraction dataset, analysis plan, seed, and library versions — and all four are locked: the dataset hash (Gate 3d), the plan hash (Gate 4c), the script SHA-256, and the recorded `sessionInfo()`/`pip freeze`. Re-running the script reproduces the numbers exactly. This is a *stronger* guarantee than is possible for LLM screening, and reporting language may say so — for the computed statistics only, never for the AI-assisted steps.
+6. **Adapter provenance (Phase 5c, when used).** The training-set build is deterministic given the audit log and seed (dataset hash + record-ID manifest); training is seeded and configuration-logged; the resulting adapter is identified by version + SHA-256 of its weights. **Bit-identical retraining across different hardware/driver stacks is not claimed.** What is guaranteed: the exact adapter behind any batch is identified by version and weight hash; its training data by manifest and hash; its admission by a logged promotion report and Gate 5c confirmation. Local-screener inference uses greedy decoding (the temperature-0 analogue); treat run-to-run identity as expected but not guaranteed across hardware, per the same honesty standard as above.
 
 What this skill must **not** claim:
 
@@ -240,11 +295,15 @@ What this skill must **not** claim:
 
 All language elsewhere in this skill, in the AI Transparency Block, and in any generated report must be consistent with this statement.
 
+### Upgrading Mid-Review (version-boundary policy)
+
+If the skill is upgraded while a review is in flight: **an in-flight, human-audited screen stays on the version it began under.** New-version capabilities are adopted only at a **clean phase boundary** (e.g., adopt a newer extraction phase at Phase 6/7b, or Phase 5c between screening batches — never inside an audited batch), and never retroactively alter locked criteria, hashed prompts, or already-audited decisions. Record a `skill_version_customisation` audit entry stating **which phases run under which skill version and why**, preserving the audit/hash chain of the in-flight work; prompt for this entry at the moment of upgrade rather than leaving it ad hoc. Each version ships a Migration Note stating what carries forward.
+
 ---
 
 ## Structural Overview
 
-This skill operates in **sequential phases** with **13 mandatory human-approval gates**. No phase may begin until the preceding phase is complete and, where applicable, human approval is logged. Phase 0 begins with a **Mode Selector** (NEW review vs UPDATE of an existing review); update-mode-only steps are marked ◆ below and are skipped for new reviews. Synthesis phases (8c–8e) are marked ♦: they run when the researcher's synthesis intent (kickoff item 12, bindingly decided per outcome at Phase 8c) is meta-analysis, with SWiM-routed outcomes reported narratively; when the intent is "none" they are skipped. Phase 7b (Study Data Extraction) is NOT synthesis-gated: it runs for every review that extracts study-level data — opting out is an explicit, logged decision.
+This skill operates in **sequential phases** with **13 mandatory human-approval gates** (plus **Gate 2c** whenever the Phase 5c question is raised — by trigger or by the researcher — and **Gate 5c** whenever an adapter is trained). No phase may begin until the preceding phase is complete and, where applicable, human approval is logged. Phase 0 begins with a **Mode Selector** (NEW review vs UPDATE of an existing review); update-mode-only steps are marked ◆ below and are skipped for new reviews. Synthesis phases (8c–8e) are marked ♦: they run when the researcher's synthesis intent (kickoff item 12, bindingly decided per outcome at Phase 8c) is meta-analysis, with SWiM-routed outcomes reported narratively; when the intent is "none" they are skipped. Phase 7b (Study Data Extraction) is NOT synthesis-gated: it runs for every review that extracts study-level data — opting out is an explicit, logged decision.
 
 ```
 Phase 0:  Mode Selector (NEW | UPDATE), Kickoff Decision Checklist,
@@ -278,6 +337,16 @@ Phase 5:  Title-Abstract Screening at Scale (batching, checkpoint/
 Phase 5b: Independent Dual Screening & Conflict Resolution
           ↓ ── GATE 2b: Resolve all conflicts; compute Cohen's Kappa
                (+ % agreement + PABAK) ──
+Phase 5c: ⊕ Learned Alignment — fine-tune a LOCAL open-weights
+          screener on this review's audited decisions (optional;
+          plateau-triggered or researcher-requested; the slow path
+          beside prompt calibration; recommends/triages only)
+          ↓ ── GATE 2c: informed fine-tuning decision — full time /
+               cost / data / effectiveness notice, drawbacks of BOTH
+               options; OPT-IN or OPT-OUT, either one logged and valid ──
+          ↓ ── GATE 5c: recall-safe promotion gate passed on the
+               never-trained ground-truth set + researcher confirms
+               (auto-rollback permitted; auto-promotion never) ──
 Phase 6:  Full-Text Retrieval (researcher-set directory)
           ↓
 Phase 7:  Full-Text Screening + Performance Monitoring + Dual Screening
@@ -313,6 +382,8 @@ Phase 10: Export & Reporting (including AI Transparency Statement)
 
 **Phase 5a runs before the full Phase 5 screen.** It is numbered 5a because it *is* screening — pilot rounds of it — but it is a hard prerequisite: the full screen must not begin until Gate 2a is passed.
 
+**⊕ marks the optional Phase 5c learned-alignment loop.** It exists only when the plateau trigger fires or the researcher requests it; it may be entered (and re-entered) at any **clean batch boundary** after Gate 2a — including later, when Phase 7/7b produce new training signal — and when unused, Gate 5c does not exist. It never blocks the mainline: screening proceeds on the prompt-calibration fast path while any training runs. Entry into training is itself gated: **Gate 2c** presents the full informed-choice notice and records OPT_IN or OPT_OUT — a logged opt-out mechanically blocks the training scripts and is re-presented only on a fresh trigger or researcher request, never nagged.
+
 **Failure recovery:** If the process is interrupted at any phase, it can be resumed from the last completed phase by validating the audit log's hash chain integrity. Log the resumption event, including the phase resumed from and the chain verification result. **Within Phase 5 and Phase 7, recovery is finer-grained:** screening decisions are checkpointed to disk per batch (and per sub-chunk where possible — see Screening at Scale), so an interrupted screen resumes from the last persisted record, not the start of the phase. Log a `SCREENING_RESUMPTION` event with the batch number, last completed record ID, and chain verification result.
 
 ---
@@ -327,7 +398,7 @@ Immediately create `audit_log.json` using the schema below. Every action, decisi
 
 ```json
 {
-  "schema_version": "7.0",
+  "schema_version": "8.0",
   "review_metadata": {
     "review_title": "",
     "protocol_id": "",
@@ -352,7 +423,7 @@ Immediately create `audit_log.json` using the schema below. Every action, decisi
       "inference_api_version": "",
       "temperature": 0,
       "seed": null,
-      "prompt_version": "v7.0"
+      "prompt_version": "v8.0"
     },
     "ai_transparency": {}
   },
@@ -418,6 +489,10 @@ Every log entry must conform to:
 - Extraction actions renumbered to Phase 7b and extended: `tdpl_proposed` (full list + derivations), `tdpl_decision` (per data point: confirm/modify/add/remove, including explicit do-not-extract decisions), `extraction_guideline_locked` (TDPL hash, per version), `extraction_conventions_rule` (same flow as eligibility rules), `extraction_pilot` (composition, blind-audit metrics: value-error rate, NOT_LOCATED rate, anchor-verification failure rate, discrepancy table with direction), `active_learning_calibration_extraction`, `root_cause_classification` (one per audited disagreement: transcription | convention | tdpl_defect | upstream), `UPSTREAM_SPECIFICATION_FLAG` (question presented + researcher's decision), `tdpl_amendment` (post-lock deviation + re-extraction trade-off decision), `data_extraction` (per value, with full anchor), `anchor_verification` (script run + failures), `extraction_verification`, `extraction_discrepancy_resolution` (with root cause), `extraction_dataset_locked` (dataset hash).
 - Gate 4b is retired; its dataset-lock role moves to Gate 3d. Downstream phases (8c–8e) reference the Gate 3d hash.
 
+**Key changes in v8.0 (learned alignment + brief patches):**
+- Optional `local_model_id_used` and `adapter_version_used` fields on any entry produced with the Phase 5c local screener in the loop (null otherwise); the existing `model_id_used` continues to identify the orchestrator.
+- New actions, every one hash-chained in the existing entry format and written by the shipping scripts themselves (`srlib/audit.py`): `fine_tuning_decision` (Gate 2c: OPT_IN/OPT_OUT, decision context, reviewer ID, SHA-256 of the exact disclosure shown), `adapter_training_set_built` (dataset hash, counts, oversampling factor, exclusion-manifest hash), `adapter_training_run` (full provenance manifest), `adapter_evaluation` (promotion report hash + gate verdict), `adapter_promotion` (Gate 5c confirmation, actor HUMAN), `adapter_rollback` / `ADAPTER_AUTO_ROLLBACK` (trigger + reversion), `adapter_screening_batch` (per-batch adapter version + weight hash + prompt hash), `search_benchmark_validation` (Step 2.3d: anchor set, seeded selection, per-item/per-database retrieval, miss diagnoses, revisions, final rate), `skill_version_customisation` (mid-review upgrade record), `batch_agreement_metrics` (per-audited-batch κ/PABAK/direction), `mid_screen_calibration_rescan` (scan parameters, candidate list, decision changes).
+
 **Every entry records the date and time of creation.** The `created_at` field uses full ISO-8601 format including timezone (e.g., `2026-04-13T14:32:07+01:00`). Human review actions additionally record `reviewed_at`. This applies to all entries across all phases.
 
 ### Chain Integrity
@@ -462,12 +537,14 @@ The following decisions are elicited **deliberately at kickoff**, not discovered
 11. **Full-screen pacing:** stage-and-audit per batch (screen a batch → human audits it → next batch) vs one consolidated pass (screen everything → single audit). Set expectations that a genuine per-record screen of thousands of records **spans multiple sessions** (see Throughput Honesty, Phase 5).
 12. **Synthesis intent.** Will this review attempt quantitative synthesis (meta-analysis), a structured narrative synthesis (SWiM), or selection and appraisal only ("none")? Record the intent; the binding per-outcome decision is made at Phase 8c with the extracted data in view. Note now that (a) the synthesis plan is pre-specified in the protocol (Step 0.3) precisely so later analytical choices are not data-driven, (b) study data extraction (Phase 7b) runs regardless of synthesis intent unless explicitly opted out, and the Target Data-Point List will be presented for confirmation at Gate 3b, and (c) the analysis-language question (Python vs R) will be asked at Step 8d.1 — it may be answered now or deferred to that step.
 13. **Extractor B identity** for independent dual extraction (Phase 7b): a second human extractor (preferred, Cochrane Handbook Chapter 5 standard) or a second blinded AI pass (documented as a limitation), mirroring the Reviewer B decision in item 9. Decide now so Phase 7b is not blocked.
+14. **Learned alignment (Phase 5c) — decision preview.** Phase 5c fine-tunes a local screener only after an informed opt-in at **Gate 2c**, which presents the full time / API-cost / research-data / efficiency / effectiveness notice with the drawbacks of both options. The researcher may take Gate 2c now (show the full notice, record the typed decision) or — the default — defer: "decide at Gate 2c when it fires" is a valid, logged answer. A kickoff nod or config flag never substitutes for the gate itself.
 
 Log the completed checklist as a single audit entry with `created_at`.
 
 ### Step 0.3: Protocol Generation & Registration
 
 1. Ask the researcher for their research question (for updates: confirm the prior question, noting any amendment).
+   - **NEW reviews — elicit 2–5 anchor references (dual purpose).** Ask for 2–5 key, recent, high-impact items on the topic (seminal reviews, a handbook chapter, a clinical guideline, landmark primary studies). They serve twice: (a) here, to sharpen the question's scope boundaries, key constructs, and the field's actual terminology/synonyms, seeding Step 2.3 term generation; and (b) as the anchor set for the Step 2.3d benchmark retrieval validation — the researcher supplies them **once**. If none are to hand, offer to search for candidates, but every proposal must be a **real, verifiable item (confirmed DOI/URL)** presented for researcher confirmation — no fabricated anchors, ever. Log the confirmed set (title, DOI/URL, provenance) into `benchmark_validation.anchor_references`.
 2. Ask whether they wish to include grey literature.
 3. Ask the researcher to provide or confirm:
    - The seed value for reproducibility.
@@ -550,6 +627,11 @@ Log the completed checklist as a single audit entry with `created_at`.
 │   ├── results/
 │   └── plots/
 ├── grade/               ← Phase 8e: GRADE worksheet, Summary of Findings
+├── learned_alignment/   ← Phase 5c (optional): adapters/ (incl. archived/),
+│                           training_runs/ (dataset cards, exclusion manifests,
+│                           checkpoints), promotion_reports/, active_adapter.json
+├── scripts/             ← shipped v8 scripts (build/train/evaluate/promote/
+│                           screen_with_adapter) + srlib/ + requirements-finetune.txt
 ├── prisma/
 └── exports/
 ```
@@ -838,6 +920,28 @@ An update search must be limited by **when the record entered the database** ("d
 2. **Entry-date vs publication-date trade-off.** Limiting on entry date is standard for updates but can miss records whose entry date predates the last search while the search itself missed them. If the prior review's search documentation is uncertain, offer a buffer (e.g., set the cutoff a few months before the nominal last-search date) and log the choice.
 3. **Record what was actually run.** For every database, log the exact final string including the date limiter, the date it was run, and the interface hit count (needed for Phase 3's export integrity check and Phase 9's PRISMA counts).
 
+### Step 2.3d: Benchmark Retrieval Validation (known-item / relative recall)
+
+**Why:** Steps 2.3–2.3c check that strings are *syntactically valid*; nothing yet checks that they *actually retrieve known-relevant papers* — the most consequential silent-failure mode of a search (wrong synonyms, over-narrow controlled vocabulary, an over-eager limiter). This step adds an empirical recall test against a small gold set: known-item searching / relative recall, a recognised complement to PRESS peer review. **Mandatory for NEW reviews before Gate 1; offered to UPDATE reviews as a regression check** on the reused verbatim strings within the new date window (it must never become a backdoor to re-tune an update's search — any string change remains a logged deviation).
+
+**Sequencing note:** this step is numbered 2.3d for document order but its revision loop feeds *backwards*: every string revision it produces re-enters Step 2.3 cross-validation and Step 2.3b API re-translation, so the revised string is what Gate 1 approves and Phase 3 runs.
+
+**A. Anchor references.** Use the 2–5 confirmed anchor items elicited at Step 0.3 (elicit now if skipped — same real-item/confirmation guardrail). Anchors need not themselves be retrievable (a textbook may pre-date the window); their **reference lists** are the raw material.
+
+**B. Build the benchmark ("gold") set.**
+1. Obtain each anchor's reference list from a verified source — the researcher, the item's PDF, or a structured list via Crossref/OpenAlex for a confirmed DOI. Never hand-type references from memory.
+2. Filter the pooled references to those **plausibly in-scope** (population + intervention/exposure + eligible design + inside the review's date window). Document the filter.
+3. From the in-scope pool, **randomly select N = `benchmark_size` (default 10), seeded with the review seed**; log the seed, pool size, and exact selection. If the pool is smaller, use all and record the shortfall. These are known-relevant records the strategy MUST retrieve.
+
+**C. Retrieval test (per database, then pooled).**
+- *Automatable databases* (PubMed/Europe PMC/etc.): run the Step 2.3b API query and match benchmark items by **DOI (primary) or exact normalised title (fallback)**. This is a validation probe of the string, not a retrieval substitute — the no-free-API-substitution guardrail is untouched.
+- *Institutional/manual databases* (Ovid, EBSCO, Scopus, ProQuest, WoS): locate each item in the target database and confirm it falls inside the string's result set; where a live run is impossible, do the field-by-field analysis (does the record's title/abstract/controlled-vocabulary indexing satisfy every AND-block?).
+- Report **found/N per database** and **pooled found/N** across the strategy (an item need only be caught by a database that indexes it).
+
+**D. Diagnose and revise (loop).** Classify every miss and act: missing synonym/variant/acronym → add to the OR-block; missing or wrong MeSH/Emtree → add/correct; over-narrow field tag → widen; truncation wrong → fix; over-restrictive design/date/language limiter → relax or justify; item legitimately out of scope → **swap it out** (seeded re-draw from the pool) with logged justification, never a silent drop. Every added term is a logged, researcher-approved change (do not silently widen the search beyond the protocol's intent). Re-run C→D until the target is met.
+
+**E. Gate 1 criterion.** Gate 1 does not pass until the **pooled retrieval rate ≥ `target_retrieval_rate` (default 1.0)**; any permanently-unretrieved item requires an explicit, logged scope/date justification approved by the researcher. State plainly in the Gate 1 summary that this is a **sensitivity (recall) check only** — it does not bound precision, and it complements (never replaces) the Step 2.3 syntax cross-validation and any PRESS peer review. Log everything as `action: "search_benchmark_validation"` (anchor set, seeded selection, per-item/per-database results, each miss diagnosis, each revision as a deviation with re-hash, the final rate) and record the exercise in the PRISMA-S search documentation (benchmark size, rate, justified exclusions).
+
 ### Step 2.4: Additional Databases (Plan-First, Human-in-the-Loop)
 
 Ask the researcher:
@@ -886,6 +990,7 @@ Log every search string, every synonym decision, every cross-validation result, 
 - Review each web-interface string for completeness and accuracy.
 - Review each API-translated query for correct syntax and semantic equivalence to the web-interface string.
 - Review each cross-validation finding.
+- **NEW reviews:** confirm the Step 2.3d benchmark retrieval result — pooled rate ≥ `target_retrieval_rate` (default 1.0 = 10/10), every permanently-unretrieved item carrying a logged, approved scope/date justification, and the recall-only disclaimer present. **UPDATE reviews:** confirm the 2.3d regression variant was run or explicitly declined (logged).
 - **Update mode:** confirm that each reused string is verbatim-identical to the prior review's string apart from the date limiter, and confirm that each date limiter's syntax has been **verified live** in the target platform (Step 2.3c) — ideally with the librarian.
 - Confirm that no institutional database has been silently replaced by a free API (see the scope warning above).
 - Approve, modify, or reject each string, each API query, and each database plan.
@@ -1440,9 +1545,21 @@ Schema per rule:
 - **Context-specific outcome variants:** e.g., transient situational forms of the outcome (such as procedural/perioperative states) may be UNCERTAIN rather than a clean include/exclude.
 - **Publication-type nuance:** conference abstracts reporting a real study, letters, case reports, and book chapters are **not auto-excluded** (assess against criteria; often UNCERTAIN → full-text/adjudication); reviews, meta-analyses, editorials, and overview presentations are excluded (with citation-chasing of relevant reviews noted separately).
 
+### Step 5a.6: Boundary-Policy Question Templates (ask generically, before the full screen)
+
+Raw PICO cannot express the boundary policies that decide borderline records, and discovering them only through batch-1 disagreements is late. From pilot 1 onward, put these **generic templates** to the researcher — no domain content hard-coded — and write every answer into the eligibility-rules registry before Gate 2a:
+
+- **Proxies / subscales (measure-vs-construct boundary):** do construct proxies, or outcome-relevant *subscales of broader instruments*, count as measuring the outcome?
+- **Informant:** does an informant reporting *on the participant's* outcome differ from the informant's *own* state as the endpoint?
+- **Context variants:** do transient/situational forms of the outcome (e.g., procedural vs clinical) include, defer, or exclude?
+- **Trait vs diagnosis:** elevated traits vs formal diagnosis — and a *distinct, formally diagnosed subgroup* within a broader sample vs merely incidental presence?
+- **Publication type:** corrections/errata, protocols, registry records, conference abstracts-with-data — include, defer, or exclude?
+
+An unanswered template is logged as "decide via pilot disagreements" — deliberate deferral, not omission.
+
 ### ── GATE 2a: Calibration Complete — Criteria Locked ──
 
-**MANDATORY.** Present to the researcher: every pilot's composition and metrics (κ ×2, % agreement, PABAK, disagreement tables), the full eligibility-rules registry, the active calibration examples, and the final locked `prompt_version_hash`. The researcher confirms the lock. Log confirmation with `created_at`.
+**MANDATORY.** Present to the researcher: every pilot's composition and metrics (κ ×2, % agreement, PABAK, disagreement tables), the full eligibility-rules registry, the active calibration examples, and the final locked `prompt_version_hash`. The researcher confirms the lock. On lock — and again on every post-lock deviation — also emit a **human-readable rendering of the locked specification**, `screening_criteria_locked.md` (criteria + every ACTIVE registry rule + active calibration lessons, with version and `prompt_version_hash`), hash it, and reference the hash from the lock/deviation audit entry: the Markdown rulebook is the researcher's and Reviewer B's working document, while the JSON registry remains the machine source of truth. Log confirmation with `created_at`.
 
 **Do not begin the full Phase 5 screen until Gate 2a is passed.**
 
@@ -1624,6 +1741,14 @@ Cohen's κ is mandatory but **base-rate sensitive**, and screening prevalence is
 4. Log the full 2×2 (and 3×3) agreement tables, not just the summary statistics, so the direction is always inspectable.
 
 *(Internal design guidance: PABAK is used as a standard descriptive adjustment; no new external standard is being invoked.)*
+
+#### Per-Audited-Batch Agreement & Mid-Screen Calibration Cycles
+
+Gate 2b computes agreement once; a long staged screen needs it **per audited batch**:
+
+1. **After the human audit of every batch**, compute and log (`action: "batch_agreement_metrics"`) AI-vs-human κ (3-category and binary retain/discard), % agreement, PABAK, the full confusion tables, and the disagreement **direction** counts — AI-discard/human-retain first. Interpret per the guidance above (stratified batches move κ at constant agreement). This per-batch series is also the input to the Phase 5c plateau trigger.
+2. **Mid-screen calibration cycle (defined path).** When a batch's audit yields disagreements that generalise: extract candidate rule refinements → researcher approves → registry update (a logged post-lock deviation, as ever) → new prompt hash — the existing Active Learning flow run mid-screen, not only at pilots.
+3. **Scripted prior-batch re-scan.** After any post-lock rule amendment, run a **deterministic re-scan of already-screened batches** for records the amended rule could flip: select every prior record whose logged structured rationale cites the amended rule's criterion or category (plus any researcher-approved keyword filter over titles/abstracts), present the candidate list with prior decisions for targeted human re-review, and log the scan parameters, candidate list, and every resulting decision change (`action: "mid_screen_calibration_rescan"`). The re-scan **selects candidates; the human decides** — records are never re-decided silently.
 
 #### Active Learning — Prompt Calibration Protocol
 
@@ -1872,7 +1997,7 @@ Cochrane Handbook v6.5 (Chapter 4) requires independent duplicate screening to m
 
 1. **Reviewer B** must screen the same records independently. Reviewer B can be:
    - A second human reviewer (preferred for Cochrane compliance).
-   - A second blinded AI pass with a **different prompt variant** — and, where available, a different model version (acceptable for non-Cochrane reviews, but must be documented as a limitation). Per the Reproducibility Statement, merely changing the seed does not create a meaningfully independent second reviewer for agentic screening; independence comes from a genuinely different prompt formulation and/or model, both logged.
+   - A second blinded AI pass with a **different prompt variant** — and, where available, a different model version (acceptable for non-Cochrane reviews, but must be documented as a limitation). Per the Reproducibility Statement, merely changing the seed does not create a meaningfully independent second reviewer for agentic screening; independence comes from a genuinely different prompt formulation and/or model, both logged. Where Phase 5c is active, the **promoted local adapter-screener may serve as this second AI pass** (`screen_with_adapter.py` emits the same structured schema, so its outputs drop into this comparison unmodified). Disclose then that Reviewer B was **calibrated on this review's audited decisions**, so its errors are *correlated* with the Reviewer-A stream — "independent" here means blinded and separately executed, not error-independent; a second human remains the Cochrane-compliant option. The adapter never adjudicates: conflicts still go to the human adjudicator, with B-discard-where-A-retained conflicts surfaced first.
 
 2. **Reviewer B does not see Reviewer A's decisions.** Present records to Reviewer B in the same format as the ground-truth validation (no AI recommendation shown if Reviewer B is human; if Reviewer B is a second AI pass, use the documented different prompt variant/model, blind to Reviewer A's outputs).
 
@@ -1901,6 +2026,104 @@ Cochrane Handbook v6.5 (Chapter 4) requires independent duplicate screening to m
 **MANDATORY.** All conflicts must be resolved before proceeding. Log the final consensus decision for every record.
 
 **Do not proceed to Phase 6 until Gate 2b is complete.**
+
+---
+
+## Phase 5c: Learned Alignment — Local Adapter Fine-Tuning (OPTIONAL, trigger-based) ⊕
+
+### What this is, and what problem it solves
+
+The Active Learning protocol (Phase 5) is the **fast path**: it corrects systematic error by putting up to five researcher-approved examples in the prompt. It plateaus when the error pattern is broader than five exemplars can express. Phase 5c is the **slow path**: fine-tune a **local open-weights screener** on the review's accumulated human-audited decisions, so the correction signal is no longer capped by prompt space. The fast path is retained unchanged; the slow path is entered only when the fast path demonstrably plateaus, or at researcher request.
+
+**What is fine-tuned — and what never is.** The orchestrating frontier model cannot be and is never fine-tuned. Phase 5c tunes a researcher-selected **1–8B open-weights instruct model** running on the researcher's own machine, via LoRA/QLoRA adapters (`peft`/`trl`, pinned in Standards). The base model is identified by id **and pinned revision** (the exact commit, resolved at first download).
+
+**Role — precisely and conservatively.** The tuned screener:
+- may serve as the **second blinded AI pass** in Phase 5b dual screening (documented limitation + the correlated-error disclosure in Phase 5b);
+- may serve as a clearly-labelled **high-recall triage/stratification aid** (the existing Boundaries slot for such aids — never the authoritative screen);
+- may **propose extraction field values** (Phase 7b) only where the anchor-verification machinery can machine-verify the quote+location; anything unverifiable is `NOT_LOCATED`, unchanged, and the no-arithmetic-at-extraction rule binds it too.
+
+It is **never** the sole authoritative screen (authoritative recommendations come from genuine per-record reading), it **never auto-excludes or finalises**, and every recommendation it produces flows through the existing human gates and audit machinery unchanged — its errors are caught by the same 100% audit, ground-truth monitoring, and dual-screening conflict resolution as before.
+
+**The alignment objective, stated plainly.** Training optimises convergence with **this researcher's audited judgment, on this locked protocol**. That is **calibration, not ground truth in general**: a model tuned on this review's decisions can overfit the researcher's early errors, and the human audit remains the control. Adapters are review-specific artifacts — exported with the reproducibility package, flagged **non-transferable**, and never presented as generally validated screeners.
+
+### Step 5c.1: Trigger, floors, and hardware
+
+**Plateau trigger (default; researcher-adjustable in config):** the binary retain/discard override rate exceeds **10% for 3 consecutive audited batches despite at least one intervening calibration cycle with active examples** — i.e., the fast path is being applied and is no longer closing the gap. Researcher request is always a valid trigger. **A fired trigger authorises nothing by itself — it opens Gate 2c below.** **Data floors:** do not offer training below **100 training-eligible records** containing **≥8 retain-class (INCLUDE/UNCERTAIN) human decisions** — below that, adapters memorise rather than generalise; three pilots plus one audited batch typically clears both.
+
+**Hardware tiers (researcher-selectable; verify the model licence fits your institution):**
+
+| Researcher hardware | Default base model | Method |
+|---|---|---|
+| CPU-only, or ≤6 GB VRAM, or Apple silicon | Qwen/Qwen2.5-1.5B-Instruct (Apache-2.0) | LoRA, no quantisation (bitsandbytes is CUDA-only) |
+| 8–12 GB VRAM consumer GPU | Qwen2.5-3B-Instruct (Qwen research licence — verify) or Llama-3.2-3B-Instruct (Llama licence) | **QLoRA 4-bit** (bitsandbytes) |
+| 12–16 GB VRAM | Qwen2.5-7B-Instruct (Apache-2.0) | QLoRA 4-bit |
+| ≥24 GB VRAM | Qwen2.5-7B-Instruct or Llama-3.1-8B-Instruct | LoRA bf16 |
+
+**Honest cost, upfront (order-of-magnitude; actuals are logged per run):** one-time base-model download ≈ 3 GB (1.5B) / 6 GB (3B) / 15 GB (7B). SFT on 150–400 examples: ≈ 5–15 min (1.5B, consumer GPU), 10–30 min (3B QLoRA), 30–90 min (7B QLoRA), 15–45 min (7–8B LoRA, ≥24 GB); **CPU-only 1.5B: 2–8 hours** — feasible overnight, stated plainly. Inference ≈ 0.5–3 s/record (GPU), 5–30 s/record (CPU). Fine-tuning is **not** run per batch; screening continues on the fast path while any training runs.
+
+### ── GATE 2c: Fine-Tuning Decision (informed opt-in / opt-out) ──
+
+**MANDATORY whenever the plateau trigger fires, the data floors are first met with kickoff item 14 deferred, or the researcher raises the question.** No Phase 5c training step — not even the training-set build — may run until the most recent `fine_tuning_decision` in the audit log is an OPT_IN from this gate: `decide_fine_tuning.py` presents the notice below with values filled from this review's own config and logs, records the typed decision (reviewer ID + SHA-256 of the exact disclosure shown), and `build_training_set.py` / `train_adapter.py` refuse to run without it.
+
+**Present both options side by side, verbatim in substance:**
+
+1. **Time.** Opt-in: one-time base-model download ≈ 3–15 GB by tier; each training cycle ≈ 5–90 min on a GPU / 2–8 h CPU-only (typically 1–3 cycles per review); holdout evaluation minutes (GPU) to 1–2 h (CPU); researcher time ≈ 10 min now plus 15–30 min per Gate 5c promotion review. Opt-out: zero additional time.
+2. **API and compute cost.** The local screener trains and runs **on the researcher's machine**: no per-token API fees for it — its costs are disk, compute time, and electricity. Orchestrator API usage for the authoritative screen is **unchanged either way** (the adapter never replaces per-record reading). Where it can change: if Reviewer B (kickoff item 9) is a second orchestrator AI pass, opting in moves that entire pass — one full read of every dual-screened record — off the API onto the local machine; if Reviewer B is a second human, expect no API difference. **No currency figures are quoted** (provider pricing varies; quoting one would violate the no-fabrication rule); the honest unit is passes-over-your-N-records, with N taken from the review's own logs.
+3. **Research data.** Training uses only this review's own audited decisions, read locally from `audit_log.json`; nothing is uploaded anywhere (the base model is downloaded, not the reverse); ground-truth validation records are never trained on (manifest-enforced, run-aborting). Two governance flags for opt-in: (a) titles/abstracts are embedded in local training files and can, at small scale, be memorised into adapter weights — relevant only if the adapter is later shared, which the non-transferability rule already discourages, and database licence terms may restrict redistributing abstracts; (b) training sets, adapters, and reports join the working directory and export package.
+4. **Efficiency.** Opt-in may gain: a calibrated second reviewer at zero marginal API cost; faster Reviewer-B throughput at large N; a labelled triage aid; possibly a lower override workload for remaining batches — *only if* a candidate passes the promotion gate. Opt-in costs: environment setup (Python packages, multi-GB disk, ideally a GPU), training cycles, one more gate to review, ongoing version/rollback bookkeeping (automated, but real). Opt-out: the prompt-calibration fast path continues unchanged; the plateau that raised this question persists — the current override rate, and the researcher's correction effort per batch, stays roughly where it is.
+5. **Effectiveness — stated without promises.** No performance gain is claimed in advance (this skill makes no unverified performance claims). Effectiveness is measured empirically on the researcher's own never-trained ground-truth records at the recall-safe gate; an adapter deploys only if it beats the incumbent there. A real possible outcome is that **no candidate ever passes** — time spent, nothing deployed; at pilot-scale holdouts the gate effectively demands zero missed includes (Step 5c.4 small-n honesty).
+6. **Drawbacks of opting IN.** Correlated-error Reviewer B (weaker error-independence than a second human — a documented limitation to disclose per PRISMA-trAIce/RAISE and possibly defend at peer review); risk of overfitting the researcher's own early errors (controls: 100% audit, never-trained holdout gate, drift auto-rollback); bit-identical retraining across hardware not claimed; compute, disk, and energy use; added operational complexity.
+7. **Drawbacks of opting OUT.** The systematic error pattern that fired the trigger persists under the five-example prompt cap, so the audit burden stays elevated for remaining batches; if Reviewer B is a second orchestrator pass, that pass keeps consuming API tokens; a possible measured sensitivity/specificity gain is forgone. What opting out does **not** cost: methodological validity — a review without Phase 5c is fully sound, Cochrane compliance is unaffected (a second human Reviewer B is in fact the stronger option), and no decision already made changes.
+8. **Reversibility — both ways.** OPT_IN is reversible at any time (one-command rollback to prompt-only, or a later logged opt-out). OPT_OUT is durable but not final: this gate is re-presented **only** on a fresh plateau trigger or the researcher's explicit request — never nagged.
+
+Either decision is logged (`action: "fine_tuning_decision"`, actor HUMAN, reviewer ID, context kickoff | plateau_trigger | researcher_request, disclosure hash) and reported in the AI Transparency Statement — "offered and declined" is a reportable outcome, not a hidden one. Kickoff item 14 may bring this gate forward to Phase 0 by showing the same full notice; a kickoff deferral, or `enabled: true` in config, never substitutes for it.
+
+### Step 5c.2: Training signal — exactly which existing artifacts, per phase
+
+All training data comes from v7's **existing** logged artifacts; nothing new is collected. `build_training_set.py` harvests deterministically from `audit_log.json`:
+
+| Source (phase) | Becomes | Notes |
+|---|---|---|
+| 5a pilot blind audits + disagreement tables | SFT | human decisions rendered in the structured schema |
+| 5 audited batches (AGREE) | SFT | the AI's logged structured output, human-confirmed, is the target verbatim |
+| 5 audited batches (OVERRIDE — the Active Learning override pool) | SFT + DPO | *chosen* = deterministic patch of the logged output on the misjudged criterion using only logged fields (decision, `criterion_misjudged`, override reason); *rejected* = the AI's overridden output |
+| 5b adjudicated conflicts | SFT (+ DPO where the local screener was Reviewer B and lost) | adjudicated decision is the target |
+| 7 audited full-text decisions | SFT, task-tagged `full_text_screening` | inputs are the persisted Phase 6 text layers truncated to the model's context budget; truncation length logged (a stated limitation of the full-text task for small models) |
+| 7b root-cause **class 1 only** (transcription/location errors) | extraction SFT | classes 2–4 (conventions, TDPL defects, upstream flags) are **never** fine-tuning data — the router's destinations are unchanged |
+| **Phase 5/7 ground-truth validation records** | **NEVER trained on** | they are the **promotion test set**, excluded by an asserted record-ID manifest (see below) |
+
+Targets are always **human-confirmed decisions rendered in the full structured criterion-by-criterion format** (decision + per-criterion verdict + grounded rationale) — never bare labels.
+
+### Step 5c.3: Training protocol (small-data reality)
+
+- **Stage 1 — SFT** (`trl` SFTTrainer) on the prompt/completion pairs above, completion-only loss.
+- **Stage 2 — preference optimisation**, only once volume permits: **DPO** when ≥ **40** clean override pairs including ≥ **10** in the dangerous direction (AI-discard/human-retain); **KTO** when signals are unpaired and ≥ **60** examples exist. Below these thresholds, **SFT-only** — preference objectives on a few dozen noisy pairs are gradient noise and risk degenerate outputs; the corrected decisions still teach via SFT.
+- **Record-level splits, zero leakage.** Splits are by stable record ID, never by chunk. A seeded, label-stratified **15% dev split** exists for early stopping only; the promotion verdict comes solely from the never-trained ground-truth holdout. `build_training_set.py` writes the **ground-truth exclusion manifest** and **aborts** on any intersection; `train_adapter.py` and `evaluate_adapter.py` re-assert it.
+- **Imbalance** (includes ≈ 5–10%): seeded **oversampling** of retain-class examples to ≥25% of the training set, capped at 3× duplication. (Per-class loss weighting is ill-defined for token-level SFT loss over generative targets; duplication is the transparent, loggable equivalent, and the cap limits memorisation pressure.) Factor logged in the dataset card.
+- **LoRA defaults (rationale):** r=16, α=32 (=2r, standard scaling), dropout=0.10, target modules q/k/v/o attention projections — at 10²–10³ examples, attention-only adapters at moderate rank keep trainable parameters ≲0.5% of a 1.5B model, the main defence against overfitting after the data floor. lr 1e-4 (SFT, cosine, 10% warmup) / 5e-6 (DPO, β=0.1); ≤5 epochs with **early stopping** (patience 2) on dev loss; max sequence length 2048.
+- **Seeded everything** (sampling, splits, oversampling, training, bootstrap) with the review seed; a **dataset card is auto-generated per run** (counts by phase/task/label, prevalence, oversampling factor, source hashes, exclusion-manifest hash, leakage-check result, full record-ID manifest).
+
+### Step 5c.4: Recall-safe promotion gate
+
+A candidate adapter is evaluated (`evaluate_adapter.py`) against the **incumbent** — the active adapter, or the prompt-only local baseline (same base model, no adapter, same prompt) before any first promotion — on the held-out, never-trained ground-truth set. **PASS iff:**
+
+1. binary retain/discard **sensitivity ≥ max(incumbent's, 0.95)** — the floor binds even for the first adapter;
+2. **specificity ≥ incumbent − 0.05**;
+3. structured-output **parse-failure rate ≤ 2%** (failures route to UNCERTAIN, fail-safe, but chronic failure is an operational defect).
+
+The promotion report mirrors the **Phase 5a metric discipline**: κ (3-category and binary), % agreement (both), PABAK (both), the confusion tables, and the **directional disagreement table with AI-discard/human-retain as the flagged dangerous cell** — plus Wilson 95% CIs on sensitivity and specificity, and a paired check **honest about n**: exact McNemar on discordant pairs at pilot scale (n ≤ 100), a seeded 2000-rep bootstrap CI on Δsensitivity otherwise, caveat printed either way. **Small-n honesty is mandatory:** with fewer than ~20 human-retain records in the holdout, one missed include breaches the 0.95 floor, so the gate operationally means *zero missed includes* — the report says so and shows the CI rather than the bare point estimate. Every statistic is computed by `srlib/metrics.py` — never by any language model. **Failed adapters are archived (`adapters/archived/`), never deployed.**
+
+### ── GATE 5c: Adapter Promotion ──
+
+**Applies whenever Phase 5c is used.** Promotion is **never automatic**, even on PASS: the researcher reviews the promotion report (including the small-n note) and types an explicit confirmation in `promote_adapter.py`, logged with reviewer ID (`action: "adapter_promotion"`, actor HUMAN). Only then does `active_adapter.json` change. **Rollback is one command** (`promote_adapter.py --rollback`); on regression alerts from the existing drift monitoring attributable to the adapter stream — `SENSITIVITY_ALERT` on its ground-truth checks, or its override rate rising ≥10 percentage points above its promotion-report level for 2 consecutive audited batches — the system **automatically rolls back** to the last promoted adapter or prompt-only mode (`ADAPTER_AUTO_ROLLBACK`), notifies the researcher, and requires a fresh Gate 5c before any re-promotion. Automatic rollback is permitted because it only returns to a previously human-approved state; automatic promotion never happens.
+
+### Step 5c.5: Provenance (all hash-chained into the audit log)
+
+Every adapter records: **semantic version**; **SHA-256 of the adapter weights**; **training-dataset hash + record-ID manifest**; **base model id + pinned revision**; the **hyperparameter record**; and the **promotion-gate report** — in `adapters/{version}/MANIFEST.json` and in chained audit entries. Every batch in which the local screener produced a recommendation records the triple **{orchestrator model id/version, adapter version + weight hash (or "prompt-only"), prompt_version_hash}** in the AI Transparency Block's `learned_alignment` section and on each entry (`local_model_id_used`, `adapter_version_used`).
+
+### Step 5c.6: Scripts (each seeded, config-driven, audit-writing, with the standard beginner instructions)
+
+`scripts/decide_fine_tuning.py` (Gate 2c — the informed opt-in/opt-out; mechanically enforced by the next two) → `scripts/build_training_set.py` → `scripts/train_adapter.py` (`--resume` continues an interrupted run from its last checkpoint, per the skill's checkpointing philosophy) → `scripts/evaluate_adapter.py` → `scripts/promote_adapter.py` (Gate 5c; `--rollback`) → `scripts/screen_with_adapter.py` (batch inference in the structured schema; greedy decoding; append-only checkpoint/resume; `--task extraction` for anchored extraction proposals). Shared helpers live in `scripts/srlib/`; install with `pip install -r scripts/requirements-finetune.txt` (pinned versions from Standards). Run instructions for non-coders are in each script's header and `--help`, in the register of the Phase 3 guidance.
 
 ---
 
@@ -1949,6 +2172,7 @@ Log the confirmed directory path.
 4. Apply the same performance monitoring system as Phase 5 (drift detection, 20% ground-truth validation, full metrics, κ Interpretation Guidance).
 5. Apply the same **Active Learning — Prompt Calibration Protocol** as Phase 5. Start with a fresh set of calibration *examples* (no carry-over from title-abstract screening), since full-text screening involves different evidence and different error patterns; the eligibility-rules *registry* carries over unchanged (post-lock changes remain logged deviations).
 6. Apply the same dual screening protocol as Phase 5b (Reviewer A + Reviewer B + conflict resolution + the κ triple).
+7. Where Phase 5c is active, audited full-text decisions join the adapter training pool as task-tagged (`task: full_text_screening`) examples at the next training run; inputs are the persisted Phase 6 text layers truncated to the local model's context budget, with the truncation logged (a stated limitation of the full-text task for small local models).
 
 ### ── GATE 3: 100% Human Audit + Dual Screening Conflict Resolution ──
 
@@ -2055,7 +2279,7 @@ Rules mirroring Phase 5a: pilots draw fresh studies only; never re-audit the pil
 
 Every audited disagreement — in pilots and at scale — is routed to exactly one of four escalating destinations. Without this routing, every discovery gets flattened into a prompt tweak and the skill "learns" its way around defects that belong in the protocol:
 
-1. **Transcription/location error** → calibration example, in the existing Phase 5 Active Learning format (`action: "active_learning_calibration_extraction"`; cap 5, staleness-retired, researcher-approved).
+1. **Transcription/location error** → calibration example, in the existing Phase 5 Active Learning format (`action: "active_learning_calibration_extraction"`; cap 5, staleness-retired, researcher-approved). Where Phase 5c is active, the corrected, anchor-verified value **also** enters the extraction fine-tuning pool. Routes 2, 3, and 4 **never** become fine-tuning data — the router's destinations are unchanged, so upstream defects are still never patched downstream.
 2. **Missing or ambiguous convention** → new extraction-conventions registry rule, researcher-approved, new registry hash.
 3. **TDPL defect** — a data point missing, wrongly defined, or unextractable as specified → **TDPL amendment**. Post-lock (after Gate 3c) this is a logged deviation; present the trade-off explicitly — re-extract already-completed studies under the amended guideline, or document the inconsistency — and log the researcher's decision.
 4. **Upstream misspecification** — the disagreement reveals the outcome concept itself was wrong, or casts doubt on an eligibility decision or the search concept. **Never silently patch this downstream.** Raise an `UPSTREAM_SPECIFICATION_FLAG`: a logged question to the researcher about whether the protocol, eligibility criteria, or (for updates) the search concept needs amendment, handled through the existing deviation mechanism — with the standing rule that screening-stage amendments never retroactively alter search breadth.
@@ -2424,6 +2648,16 @@ exports/
 │   ├── prisma_flow_diagram.svg
 │   ├── prisma_flow_diagram_source.json
 │   └── prisma_flow_diagram.md
+├── learned_alignment/                ← Phase 5c, when used
+│   ├── adapters/                     ← per version: adapter weights + MANIFEST.json
+│   │                                    (weights SHA-256, base id+revision, dataset
+│   │                                     hash + record-ID manifest, hyperparameters);
+│   │                                    archived/ holds gate-failed adapters
+│   ├── training_runs/                ← per run: config, dataset_card, ground-truth
+│   │                                    exclusion manifest, logs
+│   ├── promotion_reports/            ← Phase-5a-format metric reports, gate verdicts,
+│   │                                    Gate 5c confirmations, rollback records
+│   └── active_adapter.json           ← activation pointer + full promotion/rollback history
 ├── included_studies.bib
 ├── excluded_studies_with_reasons.csv
 ├── performance_monitoring_report.md
@@ -2433,7 +2667,7 @@ exports/
 
 **`ai_transparency_statement.md`** — the AI Transparency Block formatted for inclusion in a manuscript or appendix.
 
-**`performance_monitoring_report.md`** summarises: all alerts, drift events, AI-human agreement rates, ground-truth performance metrics, inter-rater reliability (Cohen's κ + % agreement + PABAK, per the κ Interpretation Guidance), pilot-phase metrics and the criteria-lock record, override patterns, calibration effectiveness (per-batch accuracy trends, lesson hit rates, calibration regression events), calibration warnings, and the model id/version used per batch. For reviews with data extraction it surfaces the **extraction trail**: TDPL versions and per-data-point decisions; pilot error rates (value errors, NOT_LOCATED, anchor-verification failures) and the guideline-lock record; the conventions registry; root-cause classification counts by class; every `UPSTREAM_SPECIFICATION_FLAG` and its resolution; dual-extraction discrepancy rates; and the locked dataset hash. For synthesis reviews it additionally surfaces the **full analytic decision trail**: extraction verification and discrepancy rates; every analysis-plan decision with its recommendation, rationale, and the researcher's approval or amendment; the language preference; every script version and SHA-256 hash with its pinned library versions; every execution-mode choice; execution outputs or received files and their hashes; and every analysis-plan revision with its reason — such that the entire analytic path is reconstructable from `audit_log.json` alone.
+**`performance_monitoring_report.md`** summarises: all alerts, drift events, AI-human agreement rates, ground-truth performance metrics, inter-rater reliability (Cohen's κ + % agreement + PABAK, per the κ Interpretation Guidance), pilot-phase metrics and the criteria-lock record, override patterns, calibration effectiveness (per-batch accuracy trends, lesson hit rates, calibration regression events), calibration warnings, and the model id/version used per batch. For reviews with data extraction it surfaces the **extraction trail**: TDPL versions and per-data-point decisions; pilot error rates (value errors, NOT_LOCATED, anchor-verification failures) and the guideline-lock record; the conventions registry; root-cause classification counts by class; every `UPSTREAM_SPECIFICATION_FLAG` and its resolution; dual-extraction discrepancy rates; and the locked dataset hash. For synthesis reviews it additionally surfaces the **full analytic decision trail**: extraction verification and discrepancy rates; every analysis-plan decision with its recommendation, rationale, and the researcher's approval or amendment; the language preference; every script version and SHA-256 hash with its pinned library versions; every execution-mode choice; execution outputs or received files and their hashes; and every analysis-plan revision with its reason — such that the entire analytic path is reconstructable from `audit_log.json` alone. For reviews using Phase 5c it additionally surfaces the **learned-alignment trail**: the plateau-trigger series (per-batch agreement metrics), the Gate 2c decision record (OPT_IN/OPT_OUT with context and disclosure hash — including any documented opt-out), every training run's dataset card and exclusion-manifest hash, every promotion report with gate verdict and Gate 5c confirmation, every rollback (manual or automatic) with its trigger, and the per-batch {orchestrator id, adapter version+hash, prompt hash} record.
 
 **`audit_chain_verification.py`** — provide with full beginner-friendly run instructions.
 
@@ -2459,7 +2693,7 @@ exports/
 
 9. **No fabricated references.** Every guideline, framework, and publication cited in this skill has been individually verified. URLs are provided where available but may change — always verify by searching for the framework by name.
 
-10. **Active learning from human corrections.** The AI's screening and assessment prompts are progressively calibrated using real override examples from the researcher's audit. Each calibration is logged, version-hashed, researcher-approved, and measured for effectiveness. The model itself does not change — only the prompt is enriched with few-shot examples and researcher-approved eligibility rules, every version of which is hashed so any decision is traceable to the exact instructions in force.
+10. **Two-speed learning from human corrections — on the right side of every line.** The *fast path* is unchanged in-context calibration: prompts are enriched with researcher-approved override examples and registry rules, every version hashed, so any decision is traceable to the exact instructions in force; the orchestrating model itself never changes. The *slow path* (optional Phase 5c) fine-tunes a **local open-weights screener** — never the orchestrator — on this review's human-audited decisions via versioned, hashed LoRA adapters. Its objective is convergence with **this researcher's audited judgment under this locked protocol**: calibration, not ground truth in general. Adapters recommend and triage only; they are admitted solely through a recall-safe promotion gate on never-trained ground-truth records plus researcher confirmation (Gate 5c), roll back automatically on regression, and export as review-specific, non-transferable artifacts.
 
 11. **Updates are first-class.** An update review reuses the prior protocol and search strings verbatim (date-restricted), dedups against the prior corpus with carried-forward decisions, and reports with the PRISMA update layout — none of it improvised.
 
