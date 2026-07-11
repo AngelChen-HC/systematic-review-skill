@@ -1,0 +1,27 @@
+{
+  "_help": "Copy to learned_alignment/adapter_training.json and edit the paths. Every knob below is the Phase 5c default; changes are logged config changes.",
+  "audit_log_path": "audit_log.json",
+  "records_metadata_csvs": ["screening/title_abstract/all_records_metadata.csv"],
+  "criteria_block_path": "screening_criteria_locked.md",
+  "rules_block_path": "eligibility_rules_rendered.txt",
+  "learned_alignment": {
+    "enabled": false,
+    "_enabled_note": "flipped true only by an informed OPT_IN at Gate 2c (decide_fine_tuning.py); scripts check the audit log, not this flag",
+    "base_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "base_model_revision": null,
+    "quantization": "none",
+    "active_adapter": "prompt-only",
+    "training_set_dir": "learned_alignment/training_runs/current",
+    "extra_holdout_manifests": [],
+    "dev_fraction": 0.15,
+    "oversample_target_frac": 0.25,
+    "oversample_cap": 3,
+    "max_seq_len": 2048,
+    "plateau_trigger": {"override_rate_threshold": 0.10, "consecutive_batches": 3, "requires_active_calibration": true},
+    "data_floors": {"min_training_records": 100, "min_includes": 8},
+    "stage2_thresholds": {"dpo_min_pairs": 40, "dpo_min_dangerous_direction_pairs": 10, "kto_min_examples": 60},
+    "promotion_gate": {"sensitivity_floor": 0.95, "max_specificity_drop": 0.05},
+    "lora": {"r": 16, "alpha": 32, "dropout": 0.10, "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj"]},
+    "seed": 42
+  }
+}
