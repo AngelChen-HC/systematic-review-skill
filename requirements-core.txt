@@ -1,0 +1,10 @@
+# Core skill libraries (Phases 3-7). All optional at install time: the skill
+# installs per phase with stdlib fallbacks if any of these fail (Phase 3,
+# Environment-Fragility Fallbacks).
+requests
+certifi
+pybliometrics==4.4.1
+bib-dedupe
+PyPaperRetriever
+PyMuPDF
+pytesseract   # OCR path also needs the Tesseract program itself; the skill explains when/if needed

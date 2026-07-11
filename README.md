@@ -197,6 +197,36 @@ The base model itself (default Qwen2.5-1.5B-Instruct; 1–8B tiers by hardware) 
 
 ## How to Use This Skill
 
+### 🟢 Never used Python — or fine-tuning — before? Start here.
+
+You do not need any prior experience with Python, terminals, machine learning, or fine-tuning to use this skill, including its optional Phase 5c pipeline. Three things make that true:
+
+1. **One-command installation.** Open a terminal (Windows: press the Windows key, type `cmd`, Enter · Mac: open the "Terminal" app) and paste:
+   ```bash
+   curl -O https://raw.githubusercontent.com/AngelChen-HC/systematic-review-skill/main/install.py && python3 install.py
+   ```
+   (Windows PowerShell: `Invoke-WebRequest https://raw.githubusercontent.com/AngelChen-HC/systematic-review-skill/main/install.py -OutFile install.py; python install.py`.) The installer asks plain-language questions, installs the skill **and every script it needs**, sets up your review workspace and Python environment, and finishes by running a ~10-second self-test that must print `ALL SMOKE TESTS PASSED`. If Python itself is missing, it tells you exactly where to get it. Full details and a no-terminal route: see **INSTALL.md**.
+
+2. **Fine-tuning is optional, explained, and gated.** You will never be dropped into machine learning unannounced. If the fine-tuning option ever becomes relevant, the skill stops at **Gate 2c** and shows you a complete plain-language notice — time, cost, exactly which of your data is used (nothing is uploaded anywhere), what you might gain, and the drawbacks of *both* choices — before anything runs. **Saying no is a fully valid, logged answer and your review stays just as rigorous.** You can read that notice any time, commitment-free:
+   ```bash
+   python3 scripts/decide_fine_tuning.py --config learned_alignment/adapter_training.json --show-notice
+   ```
+
+3. **If you do opt in, the pipeline is six copy-paste commands, in a fixed order, and each script tells you what to run next:**
+
+   | Step | Command starts with… | What it does (one line) |
+   |---|---|---|
+   | 1 | `python3 scripts/decide_fine_tuning.py` | Gate 2c: shows the notice, records your typed OPT-IN/OPT-OUT |
+   | 2 | `python3 scripts/build_training_set.py` | Builds the training data from decisions you already audited (refuses to touch your ground-truth records) |
+   | 3 | `python3 scripts/train_adapter.py` | Trains the small local model (minutes on a GPU; hours on CPU; resumable with `--resume`) |
+   | 4 | `python3 scripts/evaluate_adapter.py` | Tests it on records it never saw and writes the promotion report |
+   | 5 | `python3 scripts/promote_adapter.py` | Gate 5c: you read the report and type the confirmation — or don't |
+   | 6 | `python3 scripts/screen_with_adapter.py` | Uses the approved model as second reviewer / triage — recommendations only |
+
+   Every script also explains itself with `--help`, and steps 2–3 physically refuse to run without your Gate 2c opt-in.
+
+**If anything errors at any point:** copy the entire message and paste it to Claude in your review conversation — diagnosing and fixing it is part of the skill (Phase 3's beginner setup and fallback guidance). You never need to debug alone.
+
 ### Before You Start
 
 You will need:
@@ -208,9 +238,10 @@ You will need:
 
 ### Getting Started
 
-1. Provide your research question. The skill will ask you to frame it using PICO.
-2. Set your preferences: study design restrictions, language restrictions, date restrictions, target databases, seed value, and file save locations.
-3. Follow the phases. At each gate, you will be asked to review and confirm before proceeding.
+1. Install the skill — one command via `install.py` (see the green box above, or INSTALL.md for every route).
+2. Provide your research question. The skill will ask you to frame it using PICO.
+3. Set your preferences: study design restrictions, language restrictions, date restrictions, target databases, seed value, and file save locations.
+4. Follow the phases. At each gate, you will be asked to review and confirm before proceeding.
 
 ### At Each Gate
 
